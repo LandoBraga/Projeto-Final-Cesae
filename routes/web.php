@@ -25,6 +25,8 @@ Route::get('/', function () {
             'GET /technician/tickets/open',
             'PUT /technician/tickets/{id}/start',
             'PUT /technician/tickets/{id}/close',
+            'PUT /technician/tickets/{id}/request-budget',
+            'PATCH /admin/tickets/{id}/approve-budget',
             'GET /admin/users',
             'PATCH /admin/users/{id}/inactive',
             'GET /admin/equipment',
