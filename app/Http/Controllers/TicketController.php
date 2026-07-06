@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Equipment;
 use App\Models\Room;
 use App\Models\Ticket;
+use App\Models\TicketAttachment;
 use App\Models\TicketComment;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -73,6 +76,12 @@ class TicketController extends Controller
             'status' => Ticket::STATUS_OPEN,
             'opened_at' => now(),
         ]);
+
+        if ($user->email) {
+            Mail::raw('Novo ticket criado: ' . $ticket->title, function ($message) use ($user, $ticket) {
+                $message->to($user->email)->subject('Novo ticket registado #' . $ticket->id);
+            });
+        }
 
         // Retorna o ticket criado com código HTTP 201
         return response()->json(['ticket' => $ticket], 201);
@@ -291,6 +300,48 @@ class TicketController extends Controller
         }
 
         return response()->json(['comments' => $ticket->comments]);
+    }
+
+    public function uploadPhoto(Request $request, int $id)
+    {
+        $user = $this->authenticatedUser($request);
+
+        $ticket = Ticket::find($id);
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'photo' => ['required', 'file', 'image', 'max:2048'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $path = $request->file('photo')->store('tickets', 'public');
+        $attachment = TicketAttachment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $user->id,
+            'file_name' => $request->file('photo')->getClientOriginalName(),
+            'path' => $path,
+            'mime_type' => $request->file('photo')->getClientMimeType(),
+            'size' => $request->file('photo')->getSize(),
+        ]);
+
+        return response()->json(['attachment' => $attachment], 201);
+    }
+
+    public function listPhotos(Request $request, int $id)
+    {
+        $this->authenticatedUser($request);
+
+        $ticket = Ticket::with('attachments')->find($id);
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        return response()->json(['attachments' => $ticket->attachments]);
     }
 
     /**

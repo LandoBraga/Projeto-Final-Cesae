@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\ApiDocsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UiController;
@@ -34,6 +35,8 @@ Route::post('/tickets/{id}/assign-technician',        [TicketController::class, 
 Route::post('/tickets/{id}/reopen',                   [TicketController::class, 'reopenTicket']);
 Route::post('/tickets/{id}/comments',                 [TicketController::class, 'addComment']);
 Route::get('/tickets/{id}/comments',                  [TicketController::class, 'listComments']);
+Route::post('/tickets/{id}/photos',                   [TicketController::class, 'uploadPhoto']);
+Route::get('/tickets/{id}/photos',                    [TicketController::class, 'listPhotos']);
 Route::post('/tickets/{id}/schedule',                 [TicketController::class, 'scheduleTicket']);
 Route::get('/calendar/events',                        [TicketController::class, 'calendarEvents']);
 Route::get('/calendar',                               [TicketController::class, 'calendarView']);
@@ -69,3 +72,4 @@ Route::patch('/admin/rooms/{id}/inactive',            [AdminController::class, '
 Route::get('/analytics',                              [AnalyticsController::class, 'stats']);
 Route::get('/analytics/export/csv',                   [AnalyticsController::class, 'exportCsv']);
 Route::get('/analytics/export/pdf',                   [AnalyticsController::class, 'exportPdf']);
+Route::get('/docs/openapi',                           [ApiDocsController::class, 'swagger']);

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Equipment;
 use App\Models\Room;
 use App\Models\TicketComment;
+use App\Models\TicketAttachment;
 use App\Traits\Auditable;
 
 /**
@@ -105,6 +106,11 @@ class Ticket extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(TicketComment::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TicketAttachment::class);
     }
 
     public function equipment(): BelongsTo

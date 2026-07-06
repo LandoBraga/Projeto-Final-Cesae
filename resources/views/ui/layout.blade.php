@@ -19,6 +19,7 @@
                     <a href="/ui/users" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Utilizadores</a>
                     <a href="/ui/audits" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Auditoria</a>
                     <a href="/calendar" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Agenda</a>
+                    <a href="/docs/openapi" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Swagger</a>
                 </div>
                 <div id="authBox" class="text-sm"></div>
             </div>

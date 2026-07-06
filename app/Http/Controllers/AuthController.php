@@ -19,8 +19,8 @@ class AuthController extends Controller
         $data = $request->only(['name', 'email', 'password']);
 
         $validator = Validator::make($data, [
-            'name' => ['required', 'string', 'max:255'],
-            'email'   => ['required', 'email', 'max:255', 'unique:users,email'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
         ]);
 
@@ -29,11 +29,11 @@ class AuthController extends Controller
         }
 
         $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => $data['password'],
-            'role' => User::ROLE_USER,
-            'active' => true,
+            'name'      => $data['name'],
+            'email'     => $data['email'],
+            'password'  => $data['password'],
+            'role'      => User::ROLE_USER,
+            'active'    => true,
             'api_token' => Str::random(60),
         ]);
 

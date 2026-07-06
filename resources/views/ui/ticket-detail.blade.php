@@ -27,6 +27,16 @@
                 </form>
             </div>
             <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+                <h3 class="text-lg font-semibold text-white">Fotografias</h3>
+                <form id="photoForm" class="mt-4 space-y-3">
+                    <input id="photoInput" type="file" accept="image/*" class="block w-full text-sm text-slate-300">
+                    <button type="submit" class="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">Enviar fotografia</button>
+                </form>
+                <div id="photosSection" class="mt-4 text-sm text-slate-300">
+                    <p>Nenhuma fotografia carregada.</p>
+                </div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
                 <h3 class="text-lg font-semibold text-white">Ações</h3>
                 <div class="mt-4 space-y-3">
                     <label class="block text-sm text-slate-300">Técnico ID para atribuição manual
@@ -96,6 +106,18 @@ async function showMessage(message, error = false){
     setTimeout(() => { el.innerText = ''; }, 5000);
 }
 
+async function fetchPhotos(){
+    const res = await fetch('/tickets/' + ticketId + '/photos', {headers: authHeader()});
+    if(!res.ok) return;
+    const data = await res.json();
+    const section = document.getElementById('photosSection');
+    if(!data.attachments || !data.attachments.length){
+        section.innerHTML = '<p>Nenhuma fotografia carregada.</p>';
+        return;
+    }
+    section.innerHTML = data.attachments.map((a) => `<div class="mt-2 rounded-xl border border-white/10 bg-slate-900/60 p-2"><p class="font-medium text-white">${a.file_name}</p><p class="text-xs text-slate-400">${a.mime_type || ''}</p></div>`).join('');
+}
+
 async function postComment(event){
     event.preventDefault();
     const comment = document.getElementById('commentText').value.trim();
@@ -110,6 +132,24 @@ async function postComment(event){
     document.getElementById('commentText').value = '';
     await fetchComments();
     showMessage('Comentário adicionado com sucesso.');
+}
+
+async function uploadPhoto(event){
+    event.preventDefault();
+    const input = document.getElementById('photoInput');
+    if(!input.files.length){ showMessage('Selecione uma fotografia antes de enviar.', true); return; }
+    const formData = new FormData();
+    formData.append('photo', input.files[0]);
+    const res = await fetch('/tickets/' + ticketId + '/photos', {
+        method: 'POST',
+        headers: authHeader(),
+        body: formData,
+    });
+    const data = await res.json();
+    if(!res.ok){ showMessage(data.message || JSON.stringify(data), true); return; }
+    input.value = '';
+    await fetchPhotos();
+    showMessage('Fotografia enviada com sucesso.');
 }
 
 async function assignTechnician(manual){
@@ -145,7 +185,9 @@ async function reopenTicket(){
 window.addEventListener('load', () => {
     fetchTicket();
     fetchComments();
+    fetchPhotos();
     document.getElementById('commentForm').addEventListener('submit', postComment);
+    document.getElementById('photoForm').addEventListener('submit', uploadPhoto);
     document.getElementById('btnAssignManual').addEventListener('click', () => assignTechnician(true));
     document.getElementById('btnAssignAuto').addEventListener('click', () => assignTechnician(false));
     document.getElementById('btnReopen').addEventListener('click', reopenTicket);

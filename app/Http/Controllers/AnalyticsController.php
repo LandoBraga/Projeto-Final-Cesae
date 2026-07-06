@@ -26,6 +26,7 @@ class AnalyticsController extends Controller
         });
 
         $openTickets = Ticket::where('status', Ticket::STATUS_OPEN)->get();
+        $closedTickets = Ticket::where('status', Ticket::STATUS_CLOSED)->get();
         $averageWaiting = $openTickets->average(function (Ticket $ticket) {
             if (!$ticket->opened_at) {
                 return null;
@@ -36,6 +37,8 @@ class AnalyticsController extends Controller
         return response()->json([
             'average_resolution_minutes' => round($averageResolution ?: 0, 2),
             'average_waiting_minutes' => round($averageWaiting ?: 0, 2),
+            'open_tickets' => $openTickets->count(),
+            'closed_tickets' => $closedTickets->count(),
         ]);
     }
 
