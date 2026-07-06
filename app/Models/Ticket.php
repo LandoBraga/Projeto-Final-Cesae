@@ -34,6 +34,12 @@ class Ticket extends Model
     public const STATUS_IN_PROGRESS = 'em curso';
     public const STATUS_CLOSED = 'fechada';
 
+    // Prioridades de avaria
+    public const PRIORITY_LOW = 'baixa';
+    public const PRIORITY_MEDIUM = 'média';
+    public const PRIORITY_HIGH = 'alta';
+    public const PRIORITY_CRITICAL = 'crítica';
+
     // Estados do processo de orçamento (internos, em inglês para compatibilidade)
     public const BUDGET_PENDING = 'pending';
     public const BUDGET_APPROVED = 'approved';
@@ -50,10 +56,12 @@ class Ticket extends Model
         'room_id',
         'title',
         'description',
+        'priority',
         'status',
         'opened_at',
         'in_progress_at',
         'closed_at',
+        'reopened_at',
         'minutes_spent',
         'cost',
         'budget_requested',
@@ -72,6 +80,7 @@ class Ticket extends Model
         'opened_at' => 'datetime',
         'in_progress_at' => 'datetime',
         'closed_at' => 'datetime',
+        'reopened_at' => 'datetime',
         'minutes_spent' => 'integer',
         'cost' => 'decimal:2',
         'budget_requested' => 'boolean',
@@ -89,6 +98,11 @@ class Ticket extends Model
     public function technician(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(TicketComment::class);
     }
 
     public function equipment(): BelongsTo
@@ -113,6 +127,23 @@ class Ticket extends Model
         $this->status = self::STATUS_IN_PROGRESS;
         $this->in_progress_at = now();
         $this->save();
+    }
+
+    /**
+     * Reabre um ticket fechado para continuação da intervenção.
+     * - Define `status` para `em curso` e guarda `reopened_at`.
+     */
+    public function reopen(): bool
+    {
+        if ($this->status !== self::STATUS_CLOSED) {
+            return false;
+        }
+
+        $this->status = self::STATUS_IN_PROGRESS;
+        $this->reopened_at = now();
+        $this->save();
+
+        return true;
     }
 
     /**
