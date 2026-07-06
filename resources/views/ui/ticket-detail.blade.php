@@ -2,6 +2,7 @@
 
 @section('content')
 <h2>Detalhes do Ticket</h2>
+<p><a href="/ui/tickets">Voltar atrás</a></p>
 <div id="ticketDetails">
     <p>Carregando...</p>
 </div>

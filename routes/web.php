@@ -15,38 +15,7 @@ use Illuminate\Support\Facades\Route;
 // - ADM: gerir utilizadores/equipamentos/salas e aprovar orçamentos
 
 Route::get('/', function () {
-    return response()->json([
-        'message' => 'Sistema de gestão de avarias',
-        'routes' => [
-                    'POST /register',
-            'POST /login',
-            'POST /logout',
-            'POST /password/change',
-            'POST /tickets',
-            'GET /tickets',
-            'GET /tickets/{id}',
-            'GET /technician/tickets/open',
-            'PUT /technician/tickets/{id}/start',
-            'PUT /technician/tickets/{id}/close',
-            'PUT /technician/tickets/{id}/request-budget',
-            'POST /tickets/{id}/assign-technician',
-            'POST /tickets/{id}/reopen',
-            'POST /tickets/{id}/comments',
-            'GET /tickets/{id}/comments',
-            'PATCH /admin/tickets/{id}/approve-budget',
-            'GET /admin/users',
-            'PATCH /admin/users/{id}/inactive',
-            'GET /admin/equipment',
-            'POST /admin/equipment',
-            'PATCH /admin/equipment/{id}',
-            'DELETE /admin/equipment/{id}',
-            'GET /admin/rooms',
-            'POST /admin/rooms',
-            'PATCH /admin/rooms/{id}',
-            'PATCH /admin/rooms/{id}/inactive',
-            'GET /analytics',
-        ],
-    ]);
+    return view('main');
 });
 
 Route::post('/register',                              [AuthController::class, 'register']);

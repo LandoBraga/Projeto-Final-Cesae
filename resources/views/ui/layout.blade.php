@@ -14,6 +14,7 @@
 </head>
 <body>
     <nav>
+        <a href="/">Início</a>
         <a href="/ui">Dashboard</a>
         <a href="/ui/tickets">Tickets</a>
         <a href="/ui/equipments">Equipamentos</a>

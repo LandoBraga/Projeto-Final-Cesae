@@ -2,6 +2,7 @@
 
 @section('content')
 <h2>Equipamentos</h2>
+<p><a href="/ui">Voltar atrás</a></p>
 <table id="eqTable"><thead><tr><th>ID</th><th>Nome</th><th>Sala</th><th>Ativo</th></tr></thead><tbody></tbody></table>
 @endsection
 

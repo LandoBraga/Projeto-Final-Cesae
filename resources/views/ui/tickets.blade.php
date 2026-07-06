@@ -2,6 +2,7 @@
 
 @section('content')
 <h2>Tickets</h2>
+<p><a href="/ui">Voltar atrás</a></p>
 <div>
     <label>Equipamento ID: <input id="filter_equipment"></label>
     <label>Sala ID: <input id="filter_room"></label>

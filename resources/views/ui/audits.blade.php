@@ -2,6 +2,7 @@
 
 @section('content')
 <h2>Auditoria (últimos 200)</h2>
+<p><a href="/ui">Voltar atrás</a></p>
 <table id="auditsTable"><thead><tr><th>ID</th><th>Usuário</th><th>Entidade</th><th>Entidade ID</th><th>Evento</th><th>Antigo</th><th>Novo</th><th>Quando</th></tr></thead><tbody></tbody></table>
 @endsection
 
