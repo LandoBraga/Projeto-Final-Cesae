@@ -10,11 +10,19 @@ use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
+    /**
+     * Controller de administração. Métodos aqui exigem que o utilizador
+     * autenticado seja um ADM (`ROLE_ADMIN`).
+     *
+     * Fornece operações para gerir utilizadores, equipamentos, salas e
+     * aprovar pedidos de orçamento solicitados pelos técnicos.
+     */
     public function users(Request $request)
     {
         $admin = $this->authenticatedUser($request);
         $this->requireRole($admin, [User::ROLE_ADMIN]);
 
+        // Retorna todos os utilizadores (APENAS para ADM)
         return response()->json(['users' => User::all()]);
     }
 
@@ -28,10 +36,12 @@ class AdminController extends Controller
             return response()->json(['message' => 'Utilizador não encontrado'], 404);
         }
 
+        // Impede inativação de administradores por segurança
         if ($user->isAdmin()) {
             return response()->json(['message' => 'Não é possível inativar um administrador'], 422);
         }
 
+        // Marca o utilizador como inactivo
         $user->active = false;
         $user->save();
 
@@ -43,6 +53,7 @@ class AdminController extends Controller
         $admin = $this->authenticatedUser($request);
         $this->requireRole($admin, [User::ROLE_ADMIN]);
 
+        // Lista equipamentos com a sala associada
         return response()->json(['equipments' => Equipment::with('room')->get()]);
     }
 
@@ -62,6 +73,7 @@ class AdminController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Cria um equipamento activo associado a uma sala (opcional)
         $equipment = Equipment::create([
             'name' => $data['name'],
             'serial' => $data['serial'],
@@ -94,6 +106,7 @@ class AdminController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Actualiza os campos fornecidos no equipamento
         $equipment->update($data);
 
         return response()->json(['equipment' => $equipment]);
@@ -109,6 +122,7 @@ class AdminController extends Controller
             return response()->json(['message' => 'Equipamento não encontrado'], 404);
         }
 
+        // Remove o equipamento da base de dados
         $equipment->delete();
 
         return response()->json(['message' => 'Equipamento eliminado']);
@@ -119,6 +133,7 @@ class AdminController extends Controller
         $admin = $this->authenticatedUser($request);
         $this->requireRole($admin, [User::ROLE_ADMIN]);
 
+        // Lista todas as salas (ADM)
         return response()->json(['rooms' => Room::all()]);
     }
 
@@ -137,6 +152,7 @@ class AdminController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Cria uma sala activa
         $room = Room::create([
             'name' => $data['name'],
             'location' => $data['location'] ?? null,
@@ -166,6 +182,7 @@ class AdminController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Actualiza os dados da sala
         $room->update($data);
 
         return response()->json(['room' => $room]);
@@ -181,9 +198,37 @@ class AdminController extends Controller
             return response()->json(['message' => 'Sala não encontrada'], 404);
         }
 
+        // Marca a sala como inactiva
         $room->active = false;
         $room->save();
 
         return response()->json(['message' => 'Sala inativada com sucesso']);
+    }
+
+    public function approveBudget(Request $request, int $id)
+    {
+        $admin = $this->authenticatedUser($request);
+        $this->requireRole($admin, [User::ROLE_ADMIN]);
+
+        // Procura o ticket que tem um pedido de orçamento pendente
+        $ticket = \App\Models\Ticket::find($id);
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        // Verifica se existe um pedido e se está pendente
+        if (! $ticket->budget_requested || $ticket->budget_status !== \App\Models\Ticket::BUDGET_PENDING) {
+            return response()->json(['message' => 'Não existe pedido de orçamento pendente'], 422);
+        }
+
+        // Executa a aprovação (método do modelo) que grava `budget_approved_by`
+        $approved = $ticket->approveBudget($admin);
+
+        if (! $approved) {
+            return response()->json(['message' => 'Aprovação falhou'], 422);
+        }
+
+        // Retorna ticket actualizado
+        return response()->json(['ticket' => $ticket]);
     }
 }

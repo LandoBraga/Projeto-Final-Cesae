@@ -11,9 +11,9 @@ return new class extends Migration
         Schema::create('equipments', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('serial')->unique();
+            $table->string('serial')    ->unique();
             $table->foreignId('room_id')->nullable()->constrained('rooms')->nullOnDelete();
-            $table->boolean('active')->default(true);
+            $table->boolean('active')   ->default(true);
             $table->timestamps();
         });
     }
