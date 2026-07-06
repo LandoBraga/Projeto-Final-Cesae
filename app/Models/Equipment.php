@@ -9,10 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 use App\Models\Room;
 use App\Models\Ticket;
+use App\Traits\Auditable;
 
 class Equipment extends Model
 {
     use HasFactory;
+    use Auditable;
 
     protected $fillable = [
         'name',

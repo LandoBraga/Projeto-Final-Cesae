@@ -53,6 +53,20 @@ Route::get('/technician/tickets/open',       [TicketController::class, 'openTick
 Route::put('/technician/tickets/{id}/start', [TicketController::class, 'startTicket']);
 Route::put('/technician/tickets/{id}/close', [TicketController::class, 'closeTicket']);
 Route::put('/technician/tickets/{id}/request-budget', [TicketController::class, 'requestBudget']);
+Route::post('/tickets/{id}/schedule', [TicketController::class, 'scheduleTicket']);
+Route::get('/calendar/events', [TicketController::class, 'calendarEvents']);
+Route::get('/calendar', [TicketController::class, 'calendarView']);
+
+// UI routes
+Route::get('/ui', [\App\Http\Controllers\UiController::class, 'index']);
+Route::get('/ui/tickets', [\App\Http\Controllers\UiController::class, 'tickets']);
+Route::get('/ui/equipments', [\App\Http\Controllers\UiController::class, 'equipments']);
+Route::get('/ui/users', [\App\Http\Controllers\UiController::class, 'users']);
+Route::get('/ui/audits', [\App\Http\Controllers\UiController::class, 'audits']);
+Route::get('/ui/login', [\App\Http\Controllers\UiController::class, 'index'])->name('ui.login');
+
+// Audit API for UI
+Route::get('/admin/audits', [\App\Http\Controllers\AuditController::class, 'index']);
 
 Route::get('/admin/users',                   [AdminController::class, 'users']);
 Route::patch('/admin/users/{id}/inactive',   [AdminController::class, 'inactivateUser']);
@@ -69,3 +83,5 @@ Route::patch('/admin/rooms/{id}',            [AdminController::class, 'updateRoo
 Route::patch('/admin/rooms/{id}/inactive',   [AdminController::class, 'inactivateRoom']);
 
 Route::get('/analytics',                     [AnalyticsController::class, 'stats']);
+Route::get('/analytics/export/csv',          [AnalyticsController::class, 'exportCsv']);
+Route::get('/analytics/export/pdf',          [AnalyticsController::class, 'exportPdf']);

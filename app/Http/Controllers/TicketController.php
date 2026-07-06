@@ -83,6 +83,7 @@ class TicketController extends Controller
     {
         $user = $this->authenticatedUser($request);
 
+        // Simples: utilizadores comuns veem apenas os seus tickets; técnicos/ADM veem todos.
         if ($user->isCommon()) {
             $tickets = Ticket::where('user_id', $user->id)->get();
         } else {
@@ -90,23 +91,6 @@ class TicketController extends Controller
         }
 
         // Retorna lista de tickets conforme permissões
-        return response()->json(['tickets' => $tickets]);
-    }
-
-    /**
-     * Lista tickets com estado `aberta`.
-     * - Disponível para Técnicos e ADM.
-     */
-    public function openTickets(Request $request)
-    {
-        $user = $this->authenticatedUser($request);
-        $this->requireRole($user, [
-            $user::ROLE_TECHNICIAN,
-            $user::ROLE_ADMIN,
-        ]);
-
-        $tickets = Ticket::where('status', Ticket::STATUS_OPEN)->get();
-
         return response()->json(['tickets' => $tickets]);
     }
 
@@ -122,8 +106,12 @@ class TicketController extends Controller
             $user::ROLE_TECHNICIAN,
         ]);
 
-        // Procura o ticket pelo id
+    /**
+     * Marca um ticket como 'em reparação' ao início da intervenção pelo técnico.
+     * - Verifica permissões e regista auditoria.
+     */
         $ticket = Ticket::find($id);
+
         if (!$ticket) {
             return response()->json(['message' => 'Ticket não encontrado'], 404);
         }
@@ -154,6 +142,11 @@ class TicketController extends Controller
             $user::ROLE_TECHNICIAN,
         ]);
 
+    /**
+     * Fecha um ticket pelo técnico.
+     * - Se o custo for baixo, fecha diretamente; se for alto, solicita autorização.
+     */
+
         $data = $request->only(['minutes_spent', 'cost']);
 
         // Validação dos dados enviados para encerramento
@@ -168,6 +161,7 @@ class TicketController extends Controller
 
         // Obtém o ticket e valida existência/estado
         $ticket = Ticket::find($id);
+
         if (!$ticket) {
             return response()->json(['message' => 'Ticket não encontrado'], 404);
         }
@@ -198,7 +192,12 @@ class TicketController extends Controller
             $user::ROLE_TECHNICIAN,
         ]);
 
+    /**
+     * Técnico solicita a criação de um orçamento para um ticket.
+     * - Guarda valores propostos e marca estado para revisão pelo ADM.
+     */
         $ticket = Ticket::find($id);
+
         if (!$ticket) {
             return response()->json(['message' => 'Ticket não encontrado'], 404);
         }
@@ -231,5 +230,109 @@ class TicketController extends Controller
 
         // Caso contrário, devolve o ticket actualizado com os campos de orçamento
         return response()->json(['ticket' => $ticket]);
+    }
+
+    /**
+     * Agenda uma intervenção para o ticket (definir início/fim e opcionalmente atribuir técnico).
+     * - Papéis: técnico ou ADM podem agendar.
+     * - Parâmetros do request: `start` (datetime ISO), opcional `end`, opcional `technician_id`.
+     */
+    public function scheduleTicket(Request $request, int $id)
+    {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            $user::ROLE_TECHNICIAN,
+            $user::ROLE_ADMIN,
+        ]);
+
+      /**
+       * Agenda uma intervenção para o ticket (data/hora e técnico associado).
+       * - Utilizado para popular o calendário de intervenções.
+       */
+        $ticket = Ticket::find($id);
+
+        if (! $ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        $data = $request->only(['start', 'end', 'technician_id']);
+
+        $validator = \Illuminate\Support\Facades\Validator::make($data, [
+            'start' => ['required', 'date'],
+            'end' => ['nullable', 'date', 'after_or_equal:start'],
+            'technician_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $ticket->scheduled_at = $data['start'];
+        $ticket->scheduled_end = $data['end'] ?? null;
+        $ticket->scheduled = true;
+
+        if (!empty($data['technician_id'])) {
+            $ticket->assigned_to = intval($data['technician_id']);
+        }
+
+        $ticket->save();
+
+        return response()->json(['ticket' => $ticket]);
+    }
+
+    /**
+     * Return scheduled interventions as calendar events (JSON) compatible with FullCalendar.
+     * - Roles: technician and admin.
+     */
+    public function calendarEvents(Request $request)
+    {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            $user::ROLE_TECHNICIAN,
+            $user::ROLE_ADMIN,
+        ]);
+
+    /**
+     * Fornece eventos calendarizados (FullCalendar) no formato JSON.
+     */
+
+        // Apenas tickets com agendamento
+        $query = Ticket::query();
+        $query->where('scheduled', true);
+
+        // Filtros opcionais: technician_id
+        if ($request->filled('technician_id')) {
+            $query->where('assigned_to', intval($request->input('technician_id')));
+        }
+
+        $tickets = $query->get();
+
+        $events = $tickets->map(function ($t) {
+            return [
+                'id' => $t->id,
+                'title' => $t->title . ' (' . $t->status . ')',
+                'start' => optional($t->scheduled_at)->toIso8601String(),
+                'end' => optional($t->scheduled_end)->toIso8601String(),
+                'technician_id' => $t->assigned_to,
+            ];
+        });
+
+        return response()->json($events);
+    }
+
+    /**
+     * Renderiza a vista do calendário (Blade) que consome `/calendar/events`.
+     */
+    public function calendarView(Request $request)
+    {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            $user::ROLE_TECHNICIAN,
+            $user::ROLE_ADMIN,
+        ]);
+
+      /**
+       * Renderiza a vista do calendário com o FullCalendar embebido.
+       */
     }
 }

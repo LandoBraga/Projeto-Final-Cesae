@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
 use App\Models\Equipment;
 use App\Models\Room;
+use App\Traits\Auditable;
 
 /**
  * Modelo `Ticket` representa um registo de avaria/solicitação de intervenção.
@@ -26,6 +27,7 @@ use App\Models\Room;
 class Ticket extends Model
 {
     use HasFactory;
+    use Auditable;
 
     // Estados do ticket usados pela aplicação (texto em PT para UI/DB)
     public const STATUS_OPEN = 'aberta';
@@ -58,6 +60,9 @@ class Ticket extends Model
         'budget_status',
         'budget_amount',
         'budget_approved_by',
+        'scheduled_at',
+        'scheduled_end',
+        'scheduled',
     ];
 
     /**
@@ -71,6 +76,9 @@ class Ticket extends Model
         'cost' => 'decimal:2',
         'budget_requested' => 'boolean',
         'budget_amount' => 'decimal:2',
+        'scheduled_at' => 'datetime',
+        'scheduled_end' => 'datetime',
+        'scheduled' => 'boolean',
     ];
 
     public function user(): BelongsTo
