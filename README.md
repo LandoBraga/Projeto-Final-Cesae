@@ -8,28 +8,43 @@ O objetivo deste projeto é disponibilizar uma plataforma web que facilite a com
 
 ---
 
-## Funcionalidades
+## Matriz de Autorizações
 
-### Utilizador
+### Utilizador Comum (Operário/Funcionário)
 
-- Registo e autenticação.
-- Criação de tickets de avaria.
-- Associação opcional do ticket a um equipamento e/ou sala.
-- Consulta do estado das avarias reportadas.
+- Alterar Password: Gestão autónoma da sua segurança de acesso.
 
-### Técnico
+- Abrir Ticket (Manutenção Corretiva): Reportar uma avaria normal de forma cirúrgica, escolhendo a sala e o equipamento.
 
-- Consulta de tickets abertos.
-- Início da reparação de um ticket.
-- Fecho da reparação com:
-  - Tempo gasto;
-  - Custo da intervenção.
-- Pedido de aprovação de orçamento quando necessário.
+- Consultar os Seus Tickets: Listagem exclusiva das avarias reportadas pelo próprio, para acompanhar o estado (Aberta, Em Curso, Fechada).
 
-### Administrador
+### Técnico de Manutenção
 
-- Aprovação de pedidos de orçamento.
-- Consulta de estatísticas do sistema.
+- Alterar Password: Gestão autónoma da sua segurança de acesso.
+
+- Consultar Painel de Avarias Ativas: Visualizar todos os tickets em estado "Aberto" ou de cariz "Preventivo" pendentes na fábrica.
+
+- Consultar Histórico de Ativos: Consultar a ficha dos equipamentos para perceber o histórico de avarias passadas daquela máquina.
+
+- Iniciar Reparação: Assumir o ticket. O sistema muda o estado para "Em Curso", injeta o timestamp automático e vincula o ID do técnico ao ticket.
+
+- Pedir Autorização Orçamental (Fluxo Excecional): Caso detete que a reparação exige peças de valor elevado, move o ticket para "Pendente de Orçamento", parando o cronómetro e justificando o valor.
+
+- Encerrar Ticket (Custo Baixo/Autorizado): Mudar o estado para "Fechada", sendo obrigado a introduzir o tempo gasto (horas) e os comentários técnicos da resolução.
+
+### Administrador (Diretor de Operações)
+
+- Gestão Total de Utilizadores: Criar utilizadores, atribuir Perfis (Roles) e inativar contas (bloquear acesso).
+
+- Gestão Total de Inventário (Ativos): Criar, atualizar e inativar Equipamentos e Categorias.
+
+- Gestão Total de Infraestrutura: Criar, atualizar e inativar Salas/Localizações.
+
+- Agendar Manutenções Preventivas: Gerar ordens de trabalho proativas do tipo "Preventiva" diretamente para a agenda dos técnicos.
+
+- Aprovar Orçamentos: Analisar os pedidos de alto valor feitos pelos técnicos, clicar em "Aprovar" para reativar o ticket para o estado "Em Curso".
+
+- Consultar Dashboard Analítico: Acesso exclusivo aos relatórios estatísticos calculados em LINQ (Tempos médios de espera, eficiência de técnicos e custos globais).
 
 ---
 
