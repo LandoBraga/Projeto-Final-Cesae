@@ -11,6 +11,9 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    /**
+     * Cria uma nova conta de utilizador para o sistema.
+     */
     public function register(Request $request)
     {
         $data = $request->only(['name', 'email', 'password']);
@@ -37,6 +40,9 @@ class AuthController extends Controller
         return response()->json(['user' => $user, 'token' => $user->api_token], 201);
     }
 
+    /**
+     * Inicia uma sessão para um utilizador existente.
+     */
     public function login(Request $request)
     {
         $data = $request->only(['email', 'password']);
@@ -62,6 +68,9 @@ class AuthController extends Controller
         return response()->json(['user' => $user, 'token' => $user->api_token]);
     }
 
+    /**
+     * Termina a sessão atual do utilizador autenticado.
+     */
     public function logout(Request $request)
     {
         $user = $this->authenticatedUser($request);

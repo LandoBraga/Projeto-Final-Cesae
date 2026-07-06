@@ -3,7 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Gestão de Avarias - Entrar</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Gestão de Avarias - Iniciar sessão</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100">
@@ -14,7 +15,7 @@
                     <div>
                         <p class="mb-4 inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-sm font-medium text-cyan-300">Sistema de apoio técnico</p>
                         <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">Acompanhe avarias, tickets e equipamentos num só lugar.</h1>
-                        <p class="mt-4 max-w-xl text-base text-slate-300">Uma experiência simples e moderna para técnicos e administradores gerir ocorrências com rapidez.</p>
+                        <p class="mt-4 max-w-xl text-base text-slate-300">Uma experiência simples e moderna para técnicos e administradores gerirem ocorrências com rapidez.</p>
                     </div>
                     <div class="mt-8 grid gap-3 sm:grid-cols-2">
                         <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -30,7 +31,7 @@
 
                 <div class="p-8 lg:p-12">
                     <div class="mb-6 flex rounded-full bg-slate-800 p-1">
-                        <button id="tabLogin" class="flex-1 rounded-full px-4 py-2 text-sm font-medium text-slate-200 transition-all bg-cyan-500/20 text-cyan-300">Entrar</button>
+                        <button id="tabLogin" class="flex-1 rounded-full px-4 py-2 text-sm font-medium text-slate-200 transition-all bg-cyan-500/20 text-cyan-300">Iniciar sessão</button>
                         <button id="tabRegister" class="flex-1 rounded-full px-4 py-2 text-sm font-medium text-slate-400 transition-all hover:text-slate-200">Criar conta</button>
                     </div>
 
@@ -40,7 +41,7 @@
                             <input id="loginEmail" name="email" type="email" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-cyan-500" placeholder="nome@empresa.pt">
                         </div>
                         <div>
-                            <label for="loginPassword" class="mb-2 block text-sm font-medium text-slate-300">Password</label>
+                            <label for="loginPassword" class="mb-2 block text-sm font-medium text-slate-300">Palavra-passe</label>
                             <input id="loginPassword" name="password" type="password" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-cyan-500" placeholder="••••••••">
                         </div>
                         <button type="submit" class="w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">Entrar na plataforma</button>
@@ -56,13 +57,12 @@
                             <input id="registerEmail" name="email" type="email" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-cyan-500" placeholder="joao@empresa.pt">
                         </div>
                         <div>
-                            <label for="registerPassword" class="mb-2 block text-sm font-medium text-slate-300">Password</label>
+                            <label for="registerPassword" class="mb-2 block text-sm font-medium text-slate-300">Palavra-passe</label>
                             <input id="registerPassword" name="password" type="password" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-cyan-500" placeholder="Mínimo 8 caracteres">
                         </div>
                         <button type="submit" class="w-full rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20">Criar conta</button>
                     </form>
 
-                    <p class="mt-4 text-sm text-slate-400">Já tem conta? Use a opção <span class="font-medium text-cyan-300">Entrar</span>.</p>
                     <div id="authMessage" class="mt-4 min-h-6 text-sm"></div>
                 </div>
             </div>
@@ -70,11 +70,27 @@
     </div>
 
     <script>
+        // Inicializa os formulários de autenticação e os textos de feedback.
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
         const tabLogin = document.getElementById('tabLogin');
         const tabRegister = document.getElementById('tabRegister');
         const messageBox = document.getElementById('authMessage');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        function buildHeaders(includeJson = true) {
+            const headers = {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            };
+
+            if (includeJson) {
+                headers['Content-Type'] = 'application/json';
+            }
+
+            return headers;
+        }
 
         function setActiveTab(tab) {
             const isLogin = tab === 'login';
@@ -98,7 +114,7 @@
 
             const response = await fetch('/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                headers: buildHeaders(),
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
@@ -123,7 +139,7 @@
 
             const response = await fetch('/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                headers: buildHeaders(),
                 body: JSON.stringify(payload)
             });
             const data = await response.json();

@@ -4,7 +4,7 @@
 @component('ui.partials.page-card', [
     'title' => 'Painel - Gestão de Avarias',
     'subtitle' => 'Escolha uma secção para continuar.',
-    'actions' => '<a href="/" class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10">Voltar para a página principal</a>'
+    'actions' => ''
 ])
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <a href="/ui/tickets" class="rounded-2xl border border-white/10 bg-slate-950/60 p-5 transition hover:border-cyan-400/40 hover:bg-slate-800/70">

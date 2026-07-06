@@ -12,11 +12,11 @@
             <div class="grid gap-8 rounded-3xl border border-white/10 bg-slate-900/80 p-8 shadow-2xl shadow-slate-950/50 backdrop-blur lg:grid-cols-[1.1fr_0.9fr] lg:p-12">
                 <div>
                     <p class="inline-flex rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-sm font-medium text-cyan-300">Gestão operacional moderna</p>
-                    <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Centralize tickets, equipamentos e auditoria com um só clique.</h1>
+                    <h1 class="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">Centralize tickets, equipamentos e auditoria num só clique.</h1>
                     <p class="mt-5 max-w-2xl text-lg text-slate-300">Uma página de entrada elegante para navegar por todas as áreas do sistema e entrar de forma rápida.</p>
                     <div class="mt-8 flex flex-wrap gap-3">
-                        <a href="/ui" class="rounded-full bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">Abrir dashboard</a>
-                        <a href="/ui/login" class="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/5">Entrar ou registar</a>
+                        <a href="/ui" class="rounded-full bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">Abrir painel</a>
+                        <a href="/ui/login" class="rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/5">Iniciar sessão ou criar conta</a>
                     </div>
                 </div>
 

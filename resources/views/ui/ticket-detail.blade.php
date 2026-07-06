@@ -4,7 +4,7 @@
 @component('ui.partials.page-card', [
     'title' => 'Detalhes do Ticket',
     'subtitle' => 'Consulte o estado do ticket e adicione comentários.',
-    'actions' => '<a href="/ui/tickets" class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10">Voltar atrás</a>'
+    'actions' => '<a href="/ui/tickets" class="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-4 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20">← Voltar ao painel</a>'
 ])
     <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-5">

@@ -488,12 +488,6 @@ class TicketController extends Controller
      */
     public function calendarView(Request $request)
     {
-        $user = $this->authenticatedUser($request);
-        $this->requireRole($user, [
-            $user::ROLE_TECHNICIAN,
-            $user::ROLE_ADMIN,
-        ]);
-
         return view('calendar');
     }
 }
