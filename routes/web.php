@@ -45,7 +45,9 @@ Route::get('/ui/tickets/{id}',                         [UiController::class, 'ti
 Route::get('/ui/equipments',                          [UiController::class, 'equipments']);
 Route::get('/ui/users',                               [UiController::class, 'users']);
 Route::get('/ui/audits',                              [UiController::class, 'audits']);
-Route::get('/ui/login',                               [UiController::class, 'index'])->name('ui.login');
+Route::get('/ui/login', function () {
+    return view('ui.auth');
+})->name('ui.login');
 
 // Audit API for UI
 Route::get('/admin/audits',                           [AuditController::class, 'index']);

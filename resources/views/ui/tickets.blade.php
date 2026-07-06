@@ -1,28 +1,44 @@
 @extends('ui.layout')
 
 @section('content')
-<h2>Tickets</h2>
-<p><a href="/ui">Voltar atrás</a></p>
-<div>
-    <label>Equipamento ID: <input id="filter_equipment"></label>
-    <label>Sala ID: <input id="filter_room"></label>
-    <label>Técnico ID: <input id="filter_technician"></label>
-    <label>Prioridade:
-        <select id="filter_priority">
-            <option value="">Todas</option>
-            <option value="baixa">Baixa</option>
-            <option value="média">Média</option>
-            <option value="alta">Alta</option>
-            <option value="crítica">Crítica</option>
-        </select>
-    </label>
-    <label>Estado: <input id="filter_status"></label>
-    <button id="btnSearch">Pesquisar</button>
-</div>
-<table id="ticketsTable">
-    <thead><tr><th>ID</th><th>Título</th><th>Prioridade</th><th>Estado</th><th>Equipamento</th><th>Sala</th><th>Técnico</th><th>Ações</th></tr></thead>
-    <tbody></tbody>
-</table>
+@component('ui.partials.page-card', [
+    'title' => 'Tickets',
+    'subtitle' => 'Filtre e consulte as ocorrências registadas.',
+    'actions' => '<a href="/ui" class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10">Voltar atrás</a>'
+])
+    <div class="mb-6 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/60 p-4 lg:grid-cols-4 xl:grid-cols-6">
+        <label class="text-sm text-slate-300">Equipamento ID
+            <input id="filter_equipment" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+        </label>
+        <label class="text-sm text-slate-300">Sala ID
+            <input id="filter_room" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+        </label>
+        <label class="text-sm text-slate-300">Técnico ID
+            <input id="filter_technician" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+        </label>
+        <label class="text-sm text-slate-300">Prioridade
+            <select id="filter_priority" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+                <option value="">Todas</option>
+                <option value="baixa">Baixa</option>
+                <option value="média">Média</option>
+                <option value="alta">Alta</option>
+                <option value="crítica">Crítica</option>
+            </select>
+        </label>
+        <label class="text-sm text-slate-300">Estado
+            <input id="filter_status" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+        </label>
+        <button id="btnSearch" class="mt-6 rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">Pesquisar</button>
+    </div>
+    <div class="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/60">
+        <table id="ticketsTable" class="min-w-full divide-y divide-white/10 text-sm text-slate-300">
+            <thead class="bg-slate-900/80 text-left text-slate-200">
+                <tr><th class="px-4 py-3">ID</th><th class="px-4 py-3">Título</th><th class="px-4 py-3">Prioridade</th><th class="px-4 py-3">Estado</th><th class="px-4 py-3">Equipamento</th><th class="px-4 py-3">Sala</th><th class="px-4 py-3">Técnico</th><th class="px-4 py-3">Ações</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+@endcomponent
 @endsection
 
 @push('scripts')

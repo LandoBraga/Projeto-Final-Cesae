@@ -1,9 +1,18 @@
 @extends('ui.layout')
 
 @section('content')
-<h2>Auditoria (últimos 200)</h2>
-<p><a href="/ui">Voltar atrás</a></p>
-<table id="auditsTable"><thead><tr><th>ID</th><th>Usuário</th><th>Entidade</th><th>Entidade ID</th><th>Evento</th><th>Antigo</th><th>Novo</th><th>Quando</th></tr></thead><tbody></tbody></table>
+@component('ui.partials.page-card', [
+    'title' => 'Auditoria',
+    'subtitle' => 'Últimos 200 registos de atividade do sistema.',
+    'actions' => '<a href="/ui" class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10">Voltar atrás</a>'
+])
+    <div class="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/60">
+        <table id="auditsTable" class="min-w-full divide-y divide-white/10 text-sm text-slate-300">
+            <thead class="bg-slate-900/80 text-left text-slate-200"><tr><th class="px-4 py-3">ID</th><th class="px-4 py-3">Usuário</th><th class="px-4 py-3">Entidade</th><th class="px-4 py-3">Entidade ID</th><th class="px-4 py-3">Evento</th><th class="px-4 py-3">Antigo</th><th class="px-4 py-3">Novo</th><th class="px-4 py-3">Quando</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+@endcomponent
 @endsection
 
 @push('scripts')

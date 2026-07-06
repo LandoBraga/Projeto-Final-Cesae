@@ -1,34 +1,48 @@
 @extends('ui.layout')
 
 @section('content')
-<h2>Detalhes do Ticket</h2>
-<p><a href="/ui/tickets">Voltar atrás</a></p>
-<div id="ticketDetails">
-    <p>Carregando...</p>
-</div>
-
-<h3>Comentários internos</h3>
-<div id="commentsSection">
-    <p>Carregando comentários...</p>
-</div>
-
-<h3>Adicionar comentário</h3>
-<form id="commentForm">
-    <textarea id="commentText" rows="4" cols="60" placeholder="Escreva um comentário para outros técnicos..."></textarea><br>
-    <button type="submit">Enviar comentário</button>
-</form>
-
-<h3>Ações</h3>
-<div>
-    <label>Técnico ID para atribuição manual: <input id="assignTechnicianId" type="number" min="1"></label>
-    <button id="btnAssignManual">Atribuir Técnico</button>
-    <button id="btnAssignAuto">Atribuir Técnico Automático</button>
-</div>
-<div>
-    <button id="btnReopen">Reabrir Ticket</button>
-</div>
-
-<div id="ticketMessage" style="margin-top:16px;color:green"></div>
+@component('ui.partials.page-card', [
+    'title' => 'Detalhes do Ticket',
+    'subtitle' => 'Consulte o estado do ticket e adicione comentários.',
+    'actions' => '<a href="/ui/tickets" class="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10">Voltar atrás</a>'
+])
+    <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+            <div id="ticketDetails" class="space-y-2 text-sm text-slate-300">
+                <p>Carregando...</p>
+            </div>
+        </div>
+        <div class="space-y-6">
+            <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+                <h3 class="text-lg font-semibold text-white">Comentários internos</h3>
+                <div id="commentsSection" class="mt-4 text-sm text-slate-300">
+                    <p>Carregando comentários...</p>
+                </div>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+                <h3 class="text-lg font-semibold text-white">Adicionar comentário</h3>
+                <form id="commentForm" class="mt-4 space-y-3">
+                    <textarea id="commentText" rows="4" class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500" placeholder="Escreva um comentário para outros técnicos..."></textarea>
+                    <button type="submit" class="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400">Enviar comentário</button>
+                </form>
+            </div>
+            <div class="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+                <h3 class="text-lg font-semibold text-white">Ações</h3>
+                <div class="mt-4 space-y-3">
+                    <label class="block text-sm text-slate-300">Técnico ID para atribuição manual
+                        <input id="assignTechnicianId" type="number" min="1" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500">
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="btnAssignManual" class="rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20">Atribuir Técnico</button>
+                        <button id="btnAssignAuto" class="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10">Atribuir Automático</button>
+                    </div>
+                    <button id="btnReopen" class="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/20">Reabrir Ticket</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="ticketMessage" class="mt-4 min-h-6 text-sm text-emerald-400"></div>
+@endcomponent
 @endsection
 
 @push('scripts')

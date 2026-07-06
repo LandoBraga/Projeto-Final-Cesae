@@ -1,31 +1,31 @@
 <!doctype html>
-<html>
+<html lang="pt">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gestão de Avarias - Painel</title>
-    <style>
-        body{font-family: Arial, Helvetica, sans-serif; margin:20px}
-        nav a{margin-right:12px}
-        table{border-collapse:collapse;width:100%}
-        th,td{border:1px solid #ccc;padding:8px}
-        .login{float:right}
-    </style>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body>
-    <nav>
-        <a href="/">Início</a>
-        <a href="/ui">Dashboard</a>
-        <a href="/ui/tickets">Tickets</a>
-        <a href="/ui/equipments">Equipamentos</a>
-        <a href="/ui/users">Utilizadores</a>
-        <a href="/ui/audits">Auditoria</a>
-        <a href="/calendar">Agenda</a>
-        <span class="login" id="authBox"></span>
-    </nav>
-    <hr />
-    <div id="content">
-        @yield('content')
+<body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_25%),linear-gradient(135deg,_#020617_0%,_#111827_100%)]">
+        <nav class="border-b border-white/10 bg-slate-900/75 backdrop-blur">
+            <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-6 py-4 lg:px-8">
+                <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-300">
+                    <a href="/" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Início</a>
+                    <a href="/ui" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Dashboard</a>
+                    <a href="/ui/tickets" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Tickets</a>
+                    <a href="/ui/equipments" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Equipamentos</a>
+                    <a href="/ui/users" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Utilizadores</a>
+                    <a href="/ui/audits" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Auditoria</a>
+                    <a href="/calendar" class="rounded-full px-3 py-2 transition hover:bg-white/10 hover:text-white">Agenda</a>
+                </div>
+                <div id="authBox" class="text-sm"></div>
+            </div>
+        </nav>
+
+        <main class="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+            @yield('content')
+        </main>
     </div>
 
 <script>
@@ -38,9 +38,9 @@ function renderAuthBox(){
     const box = document.getElementById('authBox');
     const token = localStorage.getItem('api_token');
     if(token){
-        box.innerHTML = '<button onclick="logout()">Logout</button>';
+        box.innerHTML = '<button onclick="logout()" class="rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-300 transition hover:bg-rose-500/20">Logout</button>';
     } else {
-        box.innerHTML = '<a href="/ui/login">Login</a>';
+        box.innerHTML = '<a href="/ui/login" class="rounded-full border border-cyan-400/30 bg-cyan-500/10 px-3 py-2 text-sm font-medium text-cyan-300 transition hover:bg-cyan-500/20">Login</a>';
     }
 }
 
