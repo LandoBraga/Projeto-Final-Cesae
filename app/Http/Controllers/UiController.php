@@ -30,4 +30,9 @@ class UiController extends Controller
     {
         return view('ui.audits');
     }
+
+    public function ticketDetail($id)
+    {
+        return view('ui.ticket-detail', ['ticketId' => $id]);
+    }
 }

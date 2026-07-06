@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 use App\Models\User;
 use App\Models\Equipment;
 use App\Models\Room;
+use App\Models\TicketComment;
 use App\Traits\Auditable;
 
 /**
@@ -100,7 +102,7 @@ class Ticket extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
-    public function comments()
+    public function comments(): HasMany
     {
         return $this->hasMany(TicketComment::class);
     }
@@ -127,6 +129,29 @@ class Ticket extends Model
         $this->status = self::STATUS_IN_PROGRESS;
         $this->in_progress_at = now();
         $this->save();
+    }
+
+    /**
+     * Atribui manualmente um técnico ao ticket sem alterar o estado.
+     */
+    public function assignToTechnician(User $technician): void
+    {
+        $this->assigned_to = $technician->id;
+        $this->save();
+    }
+
+    /**
+     * Retorna o técnico menos ocupado com base em tickets em curso.
+     */
+    public static function getLeastBusyTechnician(): ?User
+    {
+        return User::where('role', User::ROLE_TECHNICIAN)
+            ->where('active', true)
+            ->withCount(['assignedTickets as assigned_tickets_count' => function ($query) {
+                $query->where('status', self::STATUS_IN_PROGRESS);
+            }])
+            ->orderBy('assigned_tickets_count')
+            ->first();
     }
 
     /**

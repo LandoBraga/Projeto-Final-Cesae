@@ -18,16 +18,21 @@ Route::get('/', function () {
     return response()->json([
         'message' => 'Sistema de gestão de avarias',
         'routes' => [
-            'POST /register',
+                    'POST /register',
             'POST /login',
             'POST /logout',
             'POST /password/change',
             'POST /tickets',
             'GET /tickets',
+            'GET /tickets/{id}',
             'GET /technician/tickets/open',
             'PUT /technician/tickets/{id}/start',
             'PUT /technician/tickets/{id}/close',
             'PUT /technician/tickets/{id}/request-budget',
+            'POST /tickets/{id}/assign-technician',
+            'POST /tickets/{id}/reopen',
+            'POST /tickets/{id}/comments',
+            'GET /tickets/{id}/comments',
             'PATCH /admin/tickets/{id}/approve-budget',
             'GET /admin/users',
             'PATCH /admin/users/{id}/inactive',
@@ -51,10 +56,15 @@ Route::post('/password/change',                       [AuthController::class, 'c
 
 Route::post('/tickets',                               [TicketController::class, 'store']);
 Route::get('/tickets',                                [TicketController::class, 'index']);
+Route::get('/tickets/{id}',                            [TicketController::class, 'show']);
 Route::get('/technician/tickets/open',                [TicketController::class, 'openTickets']);
 Route::put('/technician/tickets/{id}/start',          [TicketController::class, 'startTicket']);
 Route::put('/technician/tickets/{id}/close',          [TicketController::class, 'closeTicket']);
 Route::put('/technician/tickets/{id}/request-budget', [TicketController::class, 'requestBudget']);
+Route::post('/tickets/{id}/assign-technician',        [TicketController::class, 'assignTechnician']);
+Route::post('/tickets/{id}/reopen',                   [TicketController::class, 'reopenTicket']);
+Route::post('/tickets/{id}/comments',                 [TicketController::class, 'addComment']);
+Route::get('/tickets/{id}/comments',                  [TicketController::class, 'listComments']);
 Route::post('/tickets/{id}/schedule',                 [TicketController::class, 'scheduleTicket']);
 Route::get('/calendar/events',                        [TicketController::class, 'calendarEvents']);
 Route::get('/calendar',                               [TicketController::class, 'calendarView']);
@@ -62,6 +72,7 @@ Route::get('/calendar',                               [TicketController::class, 
 // UI routes
 Route::get('/ui',                                     [UiController::class, 'index']);
 Route::get('/ui/tickets',                             [UiController::class, 'tickets']);
+Route::get('/ui/tickets/{id}',                         [UiController::class, 'ticketDetail']);
 Route::get('/ui/equipments',                          [UiController::class, 'equipments']);
 Route::get('/ui/users',                               [UiController::class, 'users']);
 Route::get('/ui/audits',                              [UiController::class, 'audits']);

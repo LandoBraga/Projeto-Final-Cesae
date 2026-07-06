@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Equipment;
 use App\Models\Room;
 use App\Models\Ticket;
+use App\Models\TicketComment;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -30,7 +32,7 @@ class TicketController extends Controller
             $user::ROLE_USER,
         ]);
 
-        $data = $request->only(['title', 'description', 'equipment_id', 'room_id']);
+        $data = $request->only(['title', 'description', 'equipment_id', 'room_id', 'priority']);
 
         // Validação dos campos recebidos pelo request
         $validator = Validator::make($data, [
@@ -38,6 +40,7 @@ class TicketController extends Controller
             'description' => ['required', 'string'],
             'equipment_id' => ['nullable', 'integer', 'exists:equipments,id'],
             'room_id' => ['nullable', 'integer', 'exists:rooms,id'],
+            'priority' => ['nullable', 'string', 'in:baixa,média,alta,crítica'],
         ]);
 
         if ($validator->fails()) {
@@ -66,6 +69,7 @@ class TicketController extends Controller
             'room_id' => $data['room_id'] ?? null,
             'title' => $data['title'],
             'description' => $data['description'],
+            'priority' => $data['priority'] ?? Ticket::PRIORITY_MEDIUM,
             'status' => Ticket::STATUS_OPEN,
             'opened_at' => now(),
         ]);
@@ -83,14 +87,67 @@ class TicketController extends Controller
     {
         $user = $this->authenticatedUser($request);
 
+        $query = Ticket::query()->with(['equipment', 'room', 'technician', 'user']);
+
         // Simples: utilizadores comuns veem apenas os seus tickets; técnicos/ADM veem todos.
         if ($user->isCommon()) {
-            $tickets = Ticket::where('user_id', $user->id)->get();
-        } else {
-            $tickets = Ticket::all();
+            $query->where('user_id', $user->id);
         }
 
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->input('priority'));
+        }
+
+        if ($request->filled('equipment_id')) {
+            $query->where('equipment_id', intval($request->input('equipment_id')));
+        }
+
+        if ($request->filled('room_id')) {
+            $query->where('room_id', intval($request->input('room_id')));
+        }
+
+        if ($request->filled('technician_id')) {
+            $query->where('assigned_to', intval($request->input('technician_id')));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $tickets = $query->get();
+
         // Retorna lista de tickets conforme permissões
+        return response()->json(['tickets' => $tickets]);
+    }
+
+    public function show(Request $request, int $id)
+    {
+        $user = $this->authenticatedUser($request);
+        $ticket = Ticket::with(['equipment', 'room', 'technician', 'user', 'comments.user'])->find($id);
+
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        if ($user->isCommon() && $ticket->user_id !== $user->id) {
+            return response()->json(['message' => 'Acesso negado'], 403);
+        }
+
+        return response()->json(['ticket' => $ticket]);
+    }
+
+    public function openTickets(Request $request)
+    {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            $user::ROLE_TECHNICIAN,
+            $user::ROLE_ADMIN,
+        ]);
+
+        $tickets = Ticket::where('status', Ticket::STATUS_OPEN)
+            ->with(['equipment', 'room', 'technician', 'user'])
+            ->get();
+
         return response()->json(['tickets' => $tickets]);
     }
 
@@ -128,6 +185,112 @@ class TicketController extends Controller
         $ticket->save();
 
         return response()->json(['ticket' => $ticket]);
+    }
+
+    public function assignTechnician(Request $request, int $id)
+    {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            $user::ROLE_ADMIN,
+        ]);
+
+        $ticket = Ticket::find($id);
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        $data = $request->only(['technician_id']);
+        $validator = Validator::make($data, [
+            'technician_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $technician = null;
+        if (!empty($data['technician_id'])) {
+            $technician = User::find($data['technician_id']);
+            if (!$technician || !$technician->isTechnician()) {
+                return response()->json(['message' => 'Técnico inválido'], 422);
+            }
+        } else {
+            $technician = Ticket::getLeastBusyTechnician();
+            if (!$technician) {
+                return response()->json(['message' => 'Não existem técnicos disponíveis'], 422);
+            }
+        }
+
+        $ticket->assignToTechnician($technician);
+
+        return response()->json(['ticket' => $ticket]);
+    }
+
+    public function reopenTicket(Request $request, int $id)
+    {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            $user::ROLE_TECHNICIAN,
+            $user::ROLE_ADMIN,
+        ]);
+
+        $ticket = Ticket::find($id);
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        if (!$ticket->reopen()) {
+            return response()->json(['message' => 'Só é possível reabrir tickets fechados'], 422);
+        }
+
+        return response()->json(['ticket' => $ticket]);
+    }
+
+    public function addComment(Request $request, int $id)
+    {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            $user::ROLE_TECHNICIAN,
+            $user::ROLE_ADMIN,
+        ]);
+
+        $ticket = Ticket::find($id);
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        $data = $request->only(['comment']);
+        $validator = Validator::make($data, [
+            'comment' => ['required', 'string', 'max:2000'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $comment = TicketComment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $user->id,
+            'comment' => $data['comment'],
+        ]);
+
+        return response()->json(['comment' => $comment], 201);
+    }
+
+    public function listComments(Request $request, int $id)
+    {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            $user::ROLE_TECHNICIAN,
+            $user::ROLE_ADMIN,
+        ]);
+
+        $ticket = Ticket::with(['comments.user'])->find($id);
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        return response()->json(['comments' => $ticket->comments]);
     }
 
     /**
@@ -331,8 +494,6 @@ class TicketController extends Controller
             $user::ROLE_ADMIN,
         ]);
 
-      /**
-       * Renderiza a vista do calendário com o FullCalendar embebido.
-       */
+        return view('calendar');
     }
 }
