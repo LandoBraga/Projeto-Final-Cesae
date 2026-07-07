@@ -8,6 +8,16 @@ O objetivo deste projeto é disponibilizar uma plataforma web que facilite a com
 
 ---
 
+## 📋 Product Backlog Inicial
+
+| Prioridade | User Story (Funcionalidade) | Critérios de Aceitação / DoD Técnico |
+| :--- | :--- | :--- |
+| 🔴 **Crítica** | **Como:** Funcionário<br>**Quero:** reportar uma avaria num equipamento específico<br>**Para:** que a equipa de manutenção saiba o que reparar. | • Formulário de submissão com campos: Equipamento, Sala e Descrição.<br>• Associação automática do ID do utilizador autenticado (`Auth::id()`).<br>• Estado inicial automático como 'Aberta' com carimbo `created_at`. |
+| 🔴 **Crítica** | **Como:** Técnico<br>**Quero:** alterar o estado de uma avaria ("Em Curso" / "Fechada")<br>**Para:** comunicar o progresso atualizado dos trabalhos. | • Dropdown exclusivo de transição de estados no workflow.<br>• Bloqueio de rotas via Middleware do Laravel para perfis não autorizados (403).<br>• Estado 'Fechada' exige parecer técnico e injeta o timestamp final. |
+| 🔴 **Crítica** | **Como:** Administrador<br>**Quero:** gerir o inventário de equipamentos e salas (CRUD)<br>**Para:** manter a infraestrutura física da empresa atualizada. | • CRUD completo integrado com *Soft Deletes* do Eloquent ORM.<br>• Validação no *Form Request* do Laravel impedindo números de série duplicados. |
+| 🟡 **Alta** | **Como:** Administrador<br>**Quero:** consultar dashboards com métricas operacionais<br>**Para:** avaliar a eficiência e tempos de resolução (MTTR). | • Painel dinâmico no Front-End alimentado por assets compilados via NPM (Vite).<br>• Consultas SQL otimizadas com *Eager Loading* (`with()`) no Eloquent para evitar o problema N+1. |
+| 🟡 **Alta** | **Como:** Sistema (Automação)<br>**Quero:** monitorizar a telemetria simulada dos ativos<br>**Para:** abrir avarias preventivas automaticamente em caso de anomalia. | • Execução de rotinas em segundo plano utilizando o *Laravel Task Scheduling*.<br>• Geração autónoma de ticket na base de dados caso os limites tolerados sejam violados. |
+
 ## Matriz de Autorizações
 
 ### Utilizador Comum (Operário/Funcionário)
