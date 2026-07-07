@@ -45,13 +45,41 @@ O objetivo deste projeto é disponibilizar uma plataforma web que facilite a com
 
 ---
 
-## Estados do Ticket
+## 🔄 Workflow & Regras de Transição de Estados
 
-Cada ticket percorre um conjunto de estados durante o seu ciclo de vida:
+O ciclo de vida de uma avaria no sistema segue regras estritas de transição geridas via Eloquent ORM. Cada alteração de estado é auditada automaticamente pelo trait `Auditable.php`.
 
-- **Aberta**
-- **Em curso**
-- **Fechada**
+### 📋 Detalhe das Transições e Comportamento Esperado
+
+#### 1. De [Aberta] para [Em Curso]
+* **Gatilho:** O Técnico clica em "Iniciar Reparação" no seu painel.
+* **Regra de Negócio:** - O sistema associa automaticamente o ID do técnico ao campo `tecnico_atribuido_id`.
+  - É registado o timestamp exato de início de intervenção para cálculo do SLA de atendimento.
+  - O ticket fica bloqueado para edição por outros técnicos.
+
+#### 2. De [Em Curso] para [Pendente de Orçamento] (Fluxo Excecional)
+* **Gatilho:** O Técnico deteta a necessidade de peças ou serviços de alto custo e clica em "Solicitar Aprovação".
+* **Regra de Negócio:**
+  - O preenchimento da justificativa financeira e a estimativa de custo tornam-se campos obrigatórios.
+  - O cronómetro de tempo de resolução (SLA) é **suspenso** para não penalizar as métricas do técnico.
+  - O Administrador é notificado no seu painel analítico.
+
+#### 3. De [Pendente de Orçamento] para [Em Curso] ou [Recusada]
+* **Gatilho:** O Administrador toma uma ação sobre o orçamento pendente.
+* **Regra de Negócio:**
+  - **Se Aprovado:** O estado regressa a "Em Curso", o cronómetro de SLA é reativado e o técnico pode prosseguir com a reparação.
+  - **Se Rejeitado:** O estado passa para "Recusada/Cancelada", exigindo uma nota de feedback do Administrador, e o ticket é encerrado.
+
+#### 4. De [Em Curso] para [Fechada]
+* **Gatilho:** O Técnico conclui a reparação física e clica em "Encerrar Ticket".
+* **Regra de Negócio:**
+  - Torna-se obrigatória a introdução das horas de mão-de-obra gastas e do relatório técnico final.
+  - O sistema injeta automaticamente o timestamp de conclusão (`closed_at`) e calcula o tempo total de resolução (MTTR).
+
+#### 5. De [Aberta] para [Cancelada]
+* **Gatilho:** O Funcionário que abriu o ticket decide anulá-lo por erro ou duplicação.
+* **Regra de Negócio:**
+  - **Condição Estrita:** Esta ação só é permitida se o ticket ainda estiver no estado inicial "Aberto". Se um técnico já tiver iniciado a reparação, o utilizador comum deixa de ter permissão para cancelar.
 
 São igualmente registados os seguintes momentos:
 
