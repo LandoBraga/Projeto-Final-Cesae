@@ -62,15 +62,15 @@ trait Auditable
                     }
 
                     Audit::create([
-                        'user_id' => $userId,
+                        'user_id'        => $userId,
                         'auditable_type' => get_class($model),
-                        'auditable_id' => $model->getKey(),
-                        'event' => $event,
-                        'old_values' => $old,
-                        'new_values' => $new,
-                        'url' => $request ? $request->fullUrl() : null,
-                        'ip_address' => $request ? $request->ip() : null,
-                        'user_agent' => $request ? $request->userAgent() : null,
+                        'auditable_id'   => $model->getKey(),
+                        'event'          => $event,
+                        'old_values'     => $old,
+                        'new_values'     => $new,
+                        'url'            => $request ? $request->fullUrl() : null,
+                        'ip_address'     => $request ? $request->ip() : null,
+                        'user_agent'     => $request ? $request->userAgent() : null,
                     ]);
                 } catch (\Throwable $e) {
                     // Falha silenciosamente para não quebrar o fluxo principal se a auditoria falhar

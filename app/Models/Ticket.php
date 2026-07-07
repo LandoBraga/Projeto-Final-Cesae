@@ -80,17 +80,17 @@ class Ticket extends Model
      * Casts para tipos nativos ao serializar/atribuir atributos.
      */
     protected $casts = [
-        'opened_at' => 'datetime',
-        'in_progress_at' => 'datetime',
-        'closed_at' => 'datetime',
-        'reopened_at' => 'datetime',
-        'minutes_spent' => 'integer',
-        'cost' => 'decimal:2',
+        'opened_at'        => 'datetime',
+        'in_progress_at'   => 'datetime',
+        'closed_at'        => 'datetime',
+        'reopened_at'      => 'datetime',
+        'minutes_spent'    => 'integer',
+        'cost'             => 'decimal:2',
         'budget_requested' => 'boolean',
-        'budget_amount' => 'decimal:2',
-        'scheduled_at' => 'datetime',
-        'scheduled_end' => 'datetime',
-        'scheduled' => 'boolean',
+        'budget_amount'    => 'decimal:2',
+        'scheduled_at'     => 'datetime',
+        'scheduled_end'    => 'datetime',
+        'scheduled'        => 'boolean',
     ];
 
     public function user(): BelongsTo
