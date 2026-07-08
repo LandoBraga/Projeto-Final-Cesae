@@ -14,25 +14,26 @@ class CustomAuthMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Procura pelo token no cabeçalho customizado, Bearer, ou cookie
-        $token = $request->header('X-Auth-Token') 
-                ?: $request->bearerToken() 
+        // Procura pelo token no cabeçalho customizado (X-Auth-Token), Bearer token, ou cookie
+        $token = $request->header('X-Auth-Token')
+                ?: $request->bearerToken()
                 ?: ($request->hasCookie('api_token') ? $request->cookie('api_token') : null);
 
-        // Log para debug
-        if (!$request->hasCookie('api_token')) {
-            \Log::debug('Cookie api_token nao encontrado. Headers: ', $request->header());
-        } else {
-            \Log::debug('Cookie api_token encontrado: ' . $request->cookie('api_token'));
-        }
+        // Se não houver token válido, retornar erro de autenticação
+        if (!$token) {
+            \Log::debug('CustomAuthMiddleware - Token validation failed', [
+                'has_cookie' => $request->hasCookie('api_token'),
+                'token_value' => is_string($token) ? $token : null,
+            ]);
 
-        if (!is_string($token) || $token === '') {
             // Se for uma request AJAX/JSON, retornar JSON
             if ($request->expectsJson() || $request->wantsJson()) {
                 return response()->json([
-                    'message' => 'Autenticação necessária. Envie X-Auth-Token no cabeçalho.'
+                    'message' => 'Autenticação necessária. Envie X-Auth-Token no cabeçalho.',
+                    'error_code' => 401
                 ], 401);
             }
+
             // Se for uma request web normal, redirecionar para login
             return redirect('/ui/login');
         }
@@ -42,25 +43,52 @@ class CustomAuthMiddleware
         $user = User::with('profile')->where('api_token', $token)->where('active', true)->first();
 
         if (!$user) {
-            // Token inválido - limpar cookie se existir
+            \Log::debug('CustomAuthMiddleware - Invalid or inactive user token', [
+                'has_cookie' => $request->hasCookie('api_token'),
+                'token_value' => is_string($token) ? $token : null,
+            ]);
+
+            // Token inválido ou utilizador inativo - limpar cookie se existir
             if ($request->hasCookie('api_token')) {
-                $response = redirect('/ui/login')->withCookie(cookie()->forget('api_token'));
-                return $response;
+                return redirect('/ui/login')->withCookie(cookie()->forget('api_token'));
             }
             
             if ($request->expectsJson() || $request->wantsJson()) {
                 return response()->json([
-                    'message' => 'Token inválido ou utilizador inativo.'
+                    'message' => 'Token inválido ou utilizador inativo.',
+                    'error_code' => 401,
+                    'errors' => [
+                        'api_token' => ['Invalid or user is inactive.']
+                    ]
                 ], 401);
             }
-            
+
             return redirect('/ui/login');
         }
 
-        // Define o utilizador no Request para ficar disponível globalmente via $request->user() ou auth()->user()
-        $request->setUserResolver(function () use ($user) {
-            return $user;
-        });
+        // Verifica se o utilizador tem um perfil válido (role definido)
+        if (!$user->profile_id || !$user->profile?->name) {
+            \Log::debug('CustomAuthMiddleware - User has no valid profile', [
+                'has_cookie' => $request->hasCookie('api_token'),
+                'token_value' => is_string($token) ? $token : null,
+                'profile_id' => $user->profile_id ?? null,
+            ]);
+
+            if ($request->expectsJson() || $request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Perfil inválido.',
+                    'error_code' => 403,
+                    'errors' => [
+                        'profile_id' => ['User must have a valid profile assigned.']
+                    ]
+                ], 403);
+            }
+
+            return redirect('/ui/login');
+        }
+
+        // Registra a autenticação usando Laravel's Auth::login() (melhor prática e mais seguro que shouldUse)
+        \Auth::guard('api')->login($user, true);
 
         return $next($request);
     }

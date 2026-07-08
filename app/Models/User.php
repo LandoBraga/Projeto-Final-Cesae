@@ -3,29 +3,22 @@
 namespace App\Models;
 
 use App\Models\Ticket;
-use Database\Factories\UserFactory;
+use App\Models\Userprofile as UserProfile;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Traits\Auditable;
+use Illuminate\Support\Facades\Hash;
 
 class User extends Authenticatable
 {
-    // Mantemos as constantes de mapeamento textual para bater com o 'name' do perfil
-    public const ROLE_USER = 'user';
-    public const ROLE_TECHNICIAN = 'technician';
-    public const ROLE_ADMIN = 'admin';
-
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
-    use Auditable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    /** @var string */
+    protected $table = 'users';
+
+    /** @var array<string> */
     protected $fillable = [
         'name',
         'email',
@@ -33,62 +26,44 @@ class User extends Authenticatable
         'profile_id',
         'active',
         'api_token',
+        'remember_token',
     ];
 
-    /**
-     * The attributes that should be validated on creation.
-     */
-    protected static function booted(): void
-    {
-        static::creating(function ($user) {
-            // Garantir que o utilizador tem um perfil válido
-            if (!$user->profile_id) {
-                $defaultProfile = UserProfile::where('name', self::ROLE_USER)->first();
-                if ($defaultProfile) {
-                    $user->profile_id = $defaultProfile->id;
-                }
-            }
-        });
-    }
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
+    /** @var array<string, string> */
     protected $hidden = [
         'password',
         'remember_token',
         'api_token',
+        '_tokens',
+        '_password_hash',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+    /** @var array<string, string> */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password'          => 'hashed',
         'active'            => 'boolean',
     ];
 
-    /**
-     * Relação: O utilizador pertence a um perfil específico.
-     */
-    public function profile(): BelongsTo
-    {
-        return $this->belongsTo(UserProfile::class, 'profile_id');
-    }
+    // Role constants - mapped to profile names for consistency
+    public const ROLE_USER      = 'user';
+    public const ROLE_TECHNICIAN= 'technician';
+    public const ROLE_ADMIN     = 'admin';
 
-    public function tickets()
+    /** @return \Illuminate\Database\Eloquent\Relations\HasMany */
+    protected function getTicketsRelation(): BelongsTo
     {
         return $this->hasMany(Ticket::class);
     }
 
-    public function assignedTickets()
+    /** @return \Illuminate\Database\Eloquent\Relations\HasMany */
+    protected function getAssignedTicketsRelation(): BelongsTo
     {
         return $this->hasMany(Ticket::class, 'assigned_to');
+    }
+
+    public function profile()
+    {
+        return $this->belongsTo(UserProfile::class, 'profile_id');
     }
 
     /**
@@ -110,8 +85,77 @@ class User extends Authenticatable
     /**
      * Verifica se o utilizador é Utilizador Comum através do relacionamento com a tabela de perfis.
      */
-    public function isCommon(): bool
+    public function isCommonUser(): bool
     {
         return $this->profile?->name === self::ROLE_USER;
+    }
+
+    /**
+     * Obtém todas as constantes de role disponíveis para o utilizador.
+     */
+    public static function getAvailableRoles(): array
+    {
+        return [self::ROLE_USER, self::ROLE_TECHNICIAN, self::ROLE_ADMIN];
+    }
+
+    /**
+     * Verifica se um perfil é válido (tem nome correspondente a uma role).
+     */
+    protected function isValidProfile(string $profileName): bool
+    {
+        return in_array($profileName, [self::ROLE_USER, self::ROLE_TECHNICIAN, self::ROLE_ADMIN]);
+    }
+
+    /**
+     * Garante que o utilizador tem um perfil válido ao criar.
+     */
+    protected static function booting(): void
+    {
+        parent::booting();
+
+        static::creating(function ($user) {
+            // Garantir que o utilizador tem um perfil válido
+            if (!$user->profile_id || !$this->isValidProfile($user->profile?->name ?? '')) {
+                $defaultRole = self::ROLE_USER;
+
+                // Procurar por um profile com a role padrão ou criar se não existir
+                $existingProfile = UserProfile::where('name', $defaultRole)->first();
+
+                if (!$existingProfile) {
+                    UserProfile::create(['name' => $defaultRole]);
+                    $existingProfile = UserProfile::where('name', $defaultRole)->first();
+                }
+
+                // Se ainda não tem profile_id, atribuir o padrão
+                if ($user->profile_id === null || !$this->isValidProfile($user->profile?->name ?? '')) {
+                    $user->profile_id = $existingProfile->id;
+                }
+            }
+        });
+    }
+
+    /**
+     * Garante que um utilizador tem perfil válido ao atualizar.
+     */
+    protected static function updating($model)
+    {
+        parent::updating($model);
+
+        if (!$this->isValidProfile($model->profile?->name ?? '')) {
+            $defaultRole = self::ROLE_USER;
+
+            // Procurar por um profile com a role padrão ou criar se não existir
+            $existingProfile = UserProfile::where('name', $defaultRole)->first();
+
+            if (!$existingProfile) {
+                UserProfile::create(['name' => $defaultRole]);
+                $existingProfile = UserProfile::where('name', $defaultRole)->first();
+            }
+
+            // Se ainda não tem profile_id, atribuir o padrão
+            if ($model->profile_id === null || !$this->isValidProfile($model->profile?->name ?? '')) {
+                $model->profile_id = $existingProfile->id;
+            }
+        }
     }
 }
