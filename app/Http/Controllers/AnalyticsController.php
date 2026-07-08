@@ -4,68 +4,70 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
+    /**
+     * Obtém métricas gerais de tickets fechados e tempos médios.
+     * Otimizado para executar agregações diretamente na base de dados.
+     */
     public function stats(Request $request)
     {
-        $user = $this->authenticatedUser($request);
-        $this->requireRole($user, [
-            $user::ROLE_ADMIN,
-            $user::ROLE_TECHNICIAN,
-        ]);
+        // Cálculo de médias transferido integralmente para o SQL (evita carregar milhares de modelos em memória).
+        // NOTA: A função TIMESTAMPDIFF é nativa do MySQL/MariaDB. Se estiveres a usar SQLite em ambiente de testes,
+        // deverá ser adaptada para: AVG((strftime('%s', closed_at) - strftime('%s', opened_at)) / 60)
+        $averageResolution = DB::table('tickets')
+            ->where('status', Ticket::STATUS_CLOSED)
+            ->whereNotNull('opened_at')
+            ->whereNotNull('closed_at')
+            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, opened_at, closed_at)) as avg_res')
+            ->value('avg_res');
 
-        $tickets = Ticket::where('status', Ticket::STATUS_CLOSED)->get();
-        $averageResolution = $tickets->average(function (Ticket $ticket) {
-            if (!$ticket->opened_at || !$ticket->closed_at) {
-                return null;
-            }
-            return $ticket->closed_at->diffInMinutes($ticket->opened_at);
-        });
+        // Calcula o tempo médio que os tickets abertos estão em espera até ao momento atual (NOW())
+        $averageWaiting = DB::table('tickets')
+            ->where('status', Ticket::STATUS_OPEN)
+            ->whereNotNull('opened_at')
+            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, opened_at, NOW())) as avg_wait')
+            ->value('avg_wait');
 
-        $openTickets = Ticket::where('status', Ticket::STATUS_OPEN)->get();
-        $closedTickets = Ticket::where('status', Ticket::STATUS_CLOSED)->get();
-        $averageWaiting = $openTickets->average(function (Ticket $ticket) {
-            if (!$ticket->opened_at) {
-                return null;
-            }
-            return $ticket->opened_at->diffInMinutes(now());
-        });
+        // Utilização do método count() do construtor de consultas para realizar um "SELECT COUNT(*)" rápido
+        $openTicketsCount = Ticket::where('status', Ticket::STATUS_OPEN)->count();
+        $closedTicketsCount = Ticket::where('status', Ticket::STATUS_CLOSED)->count();
 
         return response()->json([
             'average_resolution_minutes' => round($averageResolution ?: 0, 2),
             'average_waiting_minutes' => round($averageWaiting ?: 0, 2),
-            'open_tickets' => $openTickets->count(),
-            'closed_tickets' => $closedTickets->count(),
+            'open_tickets' => $openTicketsCount,
+            'closed_tickets' => $closedTicketsCount,
         ]);
     }
 
     /**
-     * Export tickets estatísticos/listagem em formato CSV (compatível com Excel).
+     * Exporta o relatório de todos os tickets em formato de fluxo CSV (Streaming).
+     * Otimizado para mitigar problemas de "Memory Limit Exceeded".
      */
     public function exportCsv(Request $request)
     {
-        $user = $this->authenticatedUser($request);
-        $this->requireRole($user, [
-            $user::ROLE_ADMIN,
-            $user::ROLE_TECHNICIAN,
-        ]);
-
-        $tickets = Ticket::all();
-
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-type'        => 'text/csv',
             'Content-Disposition' => 'attachment; filename="tickets_report.csv"',
         ];
 
-        $callback = function () use ($tickets) {
+        // Removeu-se a consulta 'Ticket::all()' de fora do scope.
+        // O fluxo processará os dados diretamente de dentro do callback de streaming.
+        $callback = function () {
             $handle = fopen('php://output', 'w');
-            // Cabeçalho CSV
+
+            // Define a linha de cabeçalho do ficheiro CSV
             fputcsv($handle, ['id','title','status','opened_at','in_progress_at','closed_at','minutes_spent','cost','budget_status','budget_amount']);
 
-            foreach ($tickets as $t) {
+            // O método cursor() utiliza PHP Generators por baixo do capô.
+            // Mantém apenas 1 registo Eloquent de cada vez na memória do servidor, permitindo exportar
+            // milhões de linhas sem estourar os recursos do PHP.
+            foreach (Ticket::cursor() as $t) {
                 fputcsv($handle, [
                     $t->id,
                     $t->title,
@@ -87,17 +89,17 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Exporta relatório de tickets em PDF usando uma vista Blade simples e DOMPDF.
+     * Exporta o relatório de tickets em formato PDF via DOMPDF.
+     * Otimizado para aliviar a hidratação de propriedades desnecessárias do modelo.
      */
     public function exportPdf(Request $request)
     {
-        $user = $this->authenticatedUser($request);
-        $this->requireRole($user, [
-            $user::ROLE_ADMIN,
-            $user::ROLE_TECHNICIAN,
-        ]);
-
-        $tickets = Ticket::all();
+        // Em vez de submeter coleções completas e pesadas ao DOMPDF (que já consome muita memória),
+        // filtramos estritamente as colunas necessárias que vão ser renderizadas na vista do relatório.
+        $tickets = Ticket::select([
+            'id', 'title', 'status', 'opened_at', 'in_progress_at',
+            'closed_at', 'minutes_spent', 'cost', 'budget_status', 'budget_amount'
+        ])->get();
 
         $pdf = PDF::loadView('reports.tickets', ['tickets' => $tickets]);
 

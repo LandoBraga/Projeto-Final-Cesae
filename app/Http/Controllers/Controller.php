@@ -7,16 +7,29 @@ use Illuminate\Http\Request;
 
 abstract class Controller
 {
+    /**
+     * Resolve e valida o utilizador atualmente autenticado com base no token fornecido.
+     * Procura o token prioritariamente no cabeçalho customizado 'X-Auth-Token'
+     * ou, em alternativa, no cabeçalho padrão 'Authorization' (Bearer Token).
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \App\Models\User
+     * * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
     protected function authenticatedUser(Request $request): User
     {
+        // Obtém o token a partir do cabeçalho customizado ou do Bearer Token padrão
         $token = $request->header('X-Auth-Token') ?: $request->bearerToken();
 
+        // Valida se o token foi enviado e se é uma string válida
         if (!is_string($token) || $token === '') {
             abort(401, 'Autenticação necessária. Envie X-Auth-Token no cabeçalho.');
         }
 
+        // Procura na base de dados pelo utilizador que possui o respetivo token e se encontra ativo
         $user = User::where('api_token', $token)->where('active', true)->first();
 
+        // Se o utilizador não for encontrado ou estiver inativo, interrompe o pedido
         if (!$user) {
             abort(401, 'Token inválido ou utilizador inativo.');
         }
@@ -24,8 +37,18 @@ abstract class Controller
         return $user;
     }
 
+    /**
+     * Garante programaticamente que o utilizador possui um dos perfis/papéis permitidos.
+     * Caso o perfil não corresponda, lança uma exceção HTTP 403 (Acesso Proibido).
+     *
+     * @param  \App\Models\User  $user
+     * @param  array  $roles
+     * @return void
+     * * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
     protected function requireRole(User $user, array $roles): void
     {
+        // Verifica de forma estrita se o papel do utilizador consta no grupo de permissões aceites
         if (!in_array($user->role, $roles, true)) {
             abort(403, 'Acesso proibido para o seu perfil.');
         }

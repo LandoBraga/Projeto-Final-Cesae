@@ -48,8 +48,9 @@ class UiController extends Controller
 
     /**
      * Mostra os detalhes de um ticket específico.
+     * * @param int $id ID do ticket a visualizar.
      */
-    public function ticketDetail($id)
+    public function ticketDetail(int $id)
     {
         return view('ui.ticket-detail', ['ticketId' => $id]);
     }

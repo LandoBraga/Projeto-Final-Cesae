@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Hashing\HashManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -28,10 +27,12 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Cifragem explícita da password recorrendo à Facade Hash.
+        // Previne o armazenamento de credenciais em texto limpo na base de dados.
         $user = User::create([
             'name'      => $data['name'],
             'email'     => $data['email'],
-            'password'  => $data['password'],
+            'password'  => Hash::make($data['password']),
             'role'      => User::ROLE_USER,
             'active'    => true,
             'api_token' => Str::random(60),
@@ -48,7 +49,7 @@ class AuthController extends Controller
         $data = $request->only(['email', 'password']);
 
         $validator = Validator::make($data, [
-            'email' => ['required', 'email'],
+            'email'    => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
@@ -56,12 +57,15 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Procura pelo utilizador ativo correspondente ao email fornecido
         $user = User::where('email', $data['email'])->where('active', true)->first();
 
+        // Valida se o utilizador existe e se a password introduzida coincide com o hash gravado
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json(['message' => 'Credenciais inválidas'], 401);
         }
 
+        // Regenera o API Token a cada novo início de sessão bem-sucedido
         $user->api_token = Str::random(60);
         $user->save();
 
@@ -73,13 +77,20 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        // Utiliza o método consistente centralizado da API (authenticatedUser)
+        // em vez de '$request->user()' para obter corretamente a instância do modelo.
         $user = $this->authenticatedUser($request);
+
+        // Revoga o token atual limpando o campo na base de dados
         $user->api_token = null;
         $user->save();
 
-        return response()->json(['message' => 'Sessão terminada.']);
+        return response()->json(['message' => 'Sessão terminada com sucesso.']);
     }
 
+    /**
+     * Altera a password do utilizador atualmente autenticado.
+     */
     public function changePassword(Request $request)
     {
         $user = $this->authenticatedUser($request);
@@ -88,18 +99,20 @@ class AuthController extends Controller
 
         $validator = Validator::make($data, [
             'current_password' => ['required', 'string'],
-            'new_password' => ['required', 'string', 'min:8'],
+            'new_password'     => ['required', 'string', 'min:8'],
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Verifica se a password atual introduzida corresponde à password em vigor
         if (!Hash::check($data['current_password'], $user->password)) {
             return response()->json(['message' => 'Password atual incorreta'], 403);
         }
 
-        $user->password = $data['new_password'];
+        // Aplica a cifragem obrigatória com 'Hash::make' à nova password definida.
+        $user->password = Hash::make($data['new_password']);
         $user->save();
 
         return response()->json(['message' => 'Password alterada com sucesso.']);
