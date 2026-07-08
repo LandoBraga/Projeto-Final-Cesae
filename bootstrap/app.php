@@ -15,6 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'custom.auth' => \App\Http\Middleware\CustomAuthMiddleware::class,
             'role'        => \App\Http\Middleware\RoleMiddleware::class,
+            'rate.limit'  => \App\Http\Middleware\RateLimitMiddleware::class,
+        ]);
+        
+        // Adicionar middleware global para proteger contra CSRF em formulários web
+        $middleware->validateCsrfTokens([
+            'photo' => 'POST,PATCH,PUT,DELETE',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

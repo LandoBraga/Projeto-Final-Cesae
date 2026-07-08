@@ -31,9 +31,9 @@ Route::get('/ui/equipments', [UiController::class, 'equipments']);
 Route::get('/ui/users',      [UiController::class, 'users']);
 Route::get('/ui/audits',     [UiController::class, 'audits']);
 
-// Endpoints Públicos de Autenticação (Guest)
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login',    [AuthController::class, 'login']);
+// Endpoints Públicos de Autenticação (Guest) - com rate limiting
+Route::post('/register', [AuthController::class, 'register'])->middleware(['rate.limit:5,1']);
+Route::post('/login',    [AuthController::class, 'login'])->middleware(['rate.limit:5,1']);
 
 
 /*

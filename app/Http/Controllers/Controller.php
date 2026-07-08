@@ -44,12 +44,12 @@ abstract class Controller
      * @param  \App\Models\User  $user
      * @param  array  $roles
      * @return void
-     * * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
      */
     protected function requireRole(User $user, array $roles): void
     {
-        // Verifica de forma estrita se o papel do utilizador consta no grupo de permissões aceites
-        if (!in_array($user->role, $roles, true)) {
+        // Verifica de forma estrita se o perfil do utilizador consta no grupo de permissões aceites
+        if (!$user->profile || !in_array($user->profile->name, $roles, true)) {
             abort(403, 'Acesso proibido para o seu perfil.');
         }
     }

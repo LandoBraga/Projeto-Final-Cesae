@@ -15,16 +15,24 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
-        $data = $request->only(['name', 'email', 'password']);
+        $data = $request->only(['name', 'email', 'password', 'profile_id']);
 
         $validator = Validator::make($data, [
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'profile_id' => ['nullable', 'integer', 'exists:user_profiles,id'],
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Verificar se o perfil existe e está ativo
+        $profileId = $data['profile_id'] ?? User::where('name', User::ROLE_USER)->first()?->profile_id;
+        
+        if (!$profileId) {
+            return response()->json(['message' => 'Perfil inválido'], 422);
         }
 
         // Cifragem explícita da password recorrendo à Facade Hash.
@@ -33,7 +41,7 @@ class AuthController extends Controller
             'name'      => $data['name'],
             'email'     => $data['email'],
             'password'  => Hash::make($data['password']),
-            'role'      => User::ROLE_USER,
+            'profile_id' => $profileId,
             'active'    => true,
             'api_token' => Str::random(60),
         ]);
@@ -82,7 +90,12 @@ class AuthController extends Controller
         $user = $this->authenticatedUser($request);
 
         // Revoga o token atual limpando o campo na base de dados
+        // e force save to ensure it's persisted
         $user->api_token = null;
+        $user->save();
+        
+        // Clear any remember token as well
+        $user->setRememberToken(null);
         $user->save();
 
         return response()->json(['message' => 'Sessão terminada com sucesso.']);

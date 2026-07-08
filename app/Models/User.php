@@ -36,6 +36,22 @@ class User extends Authenticatable
     ];
 
     /**
+     * The attributes that should be validated on creation.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function ($user) {
+            // Garantir que o utilizador tem um perfil válido
+            if (!$user->profile_id) {
+                $defaultProfile = UserProfile::where('name', self::ROLE_USER)->first();
+                if ($defaultProfile) {
+                    $user->profile_id = $defaultProfile->id;
+                }
+            }
+        });
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>
@@ -89,5 +105,13 @@ class User extends Authenticatable
     public function isTechnician(): bool
     {
         return $this->profile?->name === self::ROLE_TECHNICIAN;
+    }
+
+    /**
+     * Verifica se o utilizador é Utilizador Comum através do relacionamento com a tabela de perfis.
+     */
+    public function isCommon(): bool
+    {
+        return $this->profile?->name === self::ROLE_USER;
     }
 }

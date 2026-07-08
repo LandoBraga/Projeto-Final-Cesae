@@ -66,6 +66,8 @@ class TicketController extends Controller
             }
         }
 
+        $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
+        
         $ticket = Ticket::create([
             'user_id'      => $user->id,
             'equipment_id' => $data['equipment_id'] ?? null,
@@ -73,7 +75,7 @@ class TicketController extends Controller
             'title'        => $data['title'],
             'description'  => $data['description'],
             'priority'     => $data['priority'] ?? Ticket::PRIORITY_MEDIUM,
-            'status'       => Ticket::STATUS_OPEN,
+            'status_id'    => $openStatusId,
             'opened_at'    => now(),
         ]);
 
@@ -156,14 +158,16 @@ class TicketController extends Controller
     {
         $user = $this->authenticatedUser($request);
         $this->requireRole($user, [
-            $user::ROLE_TECHNICIAN,
-            $user::ROLE_ADMIN,
+            User::ROLE_TECHNICIAN,
+            User::ROLE_ADMIN,
         ]);
 
-        $tickets = Ticket::where('status', Ticket::STATUS_OPEN)
+        $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
+        
+        $tickets = Ticket::where('status_id', $openStatusId)
             ->with(['equipment', 'room', 'technician', 'user'])
             ->orderBy('created_at', 'asc')
-            ->get();
+            ->paginate(15);
 
         return response()->json(['tickets' => $tickets]);
     }
@@ -184,11 +188,12 @@ class TicketController extends Controller
             return response()->json(['message' => 'Ticket não encontrado'], 404);
         }
 
-        if ($ticket->status !== Ticket::STATUS_OPEN) {
+        if (!$ticket->hasStatus(Ticket::STATUS_OPEN)) {
             return response()->json(['message' => 'Só é possível iniciar tickets abertos'], 422);
         }
 
-        $ticket->status = Ticket::STATUS_IN_PROGRESS;
+        $inProgressStatusId = Ticket::getStatusIdByName(Ticket::STATUS_IN_PROGRESS);
+        $ticket->status_id = $inProgressStatusId;
         $ticket->assigned_to = $user->id;
         $ticket->in_progress_at = now();
         $ticket->save();
@@ -389,11 +394,12 @@ class TicketController extends Controller
             return response()->json(['message' => 'Ticket não encontrado'], 404);
         }
 
-        if ($ticket->status !== Ticket::STATUS_IN_PROGRESS) {
+        if (!$ticket->hasStatus(Ticket::STATUS_IN_PROGRESS)) {
             return response()->json(['message' => 'Só é possível encerrar tickets em curso'], 422);
         }
 
-        $ticket->status = Ticket::STATUS_CLOSED;
+        $closedStatusId = Ticket::getStatusIdByName(Ticket::STATUS_CLOSED);
+        $ticket->status_id = $closedStatusId;
         $ticket->minutes_spent = $data['minutes_spent'];
         $ticket->cost = $data['cost'];
         $ticket->closed_at = now();
@@ -418,7 +424,7 @@ class TicketController extends Controller
             return response()->json(['message' => 'Ticket não encontrado'], 404);
         }
 
-        if ($ticket->status !== Ticket::STATUS_IN_PROGRESS) {
+        if (!$ticket->hasStatus(Ticket::STATUS_IN_PROGRESS)) {
             return response()->json(['message' => 'Só é possível pedir orçamento para tickets em curso'], 422);
         }
 

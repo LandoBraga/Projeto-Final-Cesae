@@ -174,4 +174,25 @@ class Ticket extends Model
         $this->budget_approved_by = $admin->id;
         return $this->save();
     }
+
+    /**
+     * Obtém o ID do status pelo nome.
+     */
+    public static function getStatusIdByName(string $statusName): ?int
+    {
+        return TicketStatus::where('name', $statusName)->value('id');
+    }
+
+    /**
+     * Verifica se o ticket está num determinado estado pelo nome.
+     */
+    public function hasStatus(string $statusName): bool
+    {
+        if (!$this->status_id) {
+            return false;
+        }
+        
+        $statusId = self::getStatusIdByName($statusName);
+        return $this->status_id === $statusId;
+    }
 }

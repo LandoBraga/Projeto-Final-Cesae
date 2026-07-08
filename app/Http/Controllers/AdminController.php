@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Equipment;
 use App\Models\Room;
+use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -15,7 +16,8 @@ class AdminController extends Controller
      */
     public function users(Request $request)
     {
-        return response()->json(['users' => User::all()]);
+        // Adicionado eager loading para perfil para evitar N+1 queries
+        return response()->json(['users' => User::with('profile')->orderBy('name')->paginate(15)]);
     }
 
     /**
@@ -45,7 +47,8 @@ class AdminController extends Controller
      */
     public function equipments(Request $request)
     {
-        return response()->json(['equipments' => Equipment::with('room')->get()]);
+        // Adicionado paginação e ordenação
+        return response()->json(['equipments' => Equipment::with('room')->orderBy('name')->paginate(15)]);
     }
 
     /**
@@ -125,7 +128,8 @@ class AdminController extends Controller
      */
     public function rooms(Request $request)
     {
-        return response()->json(['rooms' => Room::all()]);
+        // Adicionado ordenação e paginação
+        return response()->json(['rooms' => Room::orderBy('name')->paginate(15)]);
     }
 
     /**
@@ -207,16 +211,16 @@ class AdminController extends Controller
         $admin = $this->authenticatedUser($request);
 
         // Opcional: Garante programaticamente que o utilizador autenticado possui o papel de Administrador
-        $this->requireRole($admin, [$admin::ROLE_ADMIN]);
+        $this->requireRole($admin, [User::ROLE_ADMIN]);
 
         // Procura o ticket que tem um pedido de orçamento pendente
-        $ticket = \App\Models\Ticket::find($id);
+        $ticket = Ticket::find($id);
         if (!$ticket) {
             return response()->json(['message' => 'Ticket não encontrado'], 404);
         }
 
         // Verifica se existe um pedido de orçamento e se o mesmo se encontra pendente
-        if (!$ticket->budget_requested || $ticket->budget_status !== \App\Models\Ticket::BUDGET_PENDING) {
+        if (!$ticket->budget_requested || $ticket->budget_status !== Ticket::BUDGET_PENDING) {
             return response()->json(['message' => 'Não existe pedido de orçamento pendente'], 422);
         }
 

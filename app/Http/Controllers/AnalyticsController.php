@@ -16,11 +16,14 @@ class AnalyticsController extends Controller
      */
     public function stats(Request $request)
     {
+        $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
+        $closedStatusId = Ticket::getStatusIdByName(Ticket::STATUS_CLOSED);
+        
         // Cálculo de médias transferido integralmente para o SQL (evita carregar milhares de modelos em memória).
         // NOTA: A função TIMESTAMPDIFF é nativa do MySQL/MariaDB. Se estiveres a usar SQLite em ambiente de testes,
         // deverá ser adaptada para: AVG((strftime('%s', closed_at) - strftime('%s', opened_at)) / 60)
         $averageResolution = DB::table('tickets')
-            ->where('status', Ticket::STATUS_CLOSED)
+            ->where('status_id', $closedStatusId)
             ->whereNotNull('opened_at')
             ->whereNotNull('closed_at')
             ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, opened_at, closed_at)) as avg_res')
@@ -28,14 +31,14 @@ class AnalyticsController extends Controller
 
         // Calcula o tempo médio que os tickets abertos estão em espera até ao momento atual (NOW())
         $averageWaiting = DB::table('tickets')
-            ->where('status', Ticket::STATUS_OPEN)
+            ->where('status_id', $openStatusId)
             ->whereNotNull('opened_at')
             ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, opened_at, NOW())) as avg_wait')
             ->value('avg_wait');
 
         // Utilização do método count() do construtor de consultas para realizar um "SELECT COUNT(*)" rápido
-        $openTicketsCount = Ticket::where('status', Ticket::STATUS_OPEN)->count();
-        $closedTicketsCount = Ticket::where('status', Ticket::STATUS_CLOSED)->count();
+        $openTicketsCount = Ticket::where('status_id', $openStatusId)->count();
+        $closedTicketsCount = Ticket::where('status_id', $closedStatusId)->count();
 
         return response()->json([
             'average_resolution_minutes' => round($averageResolution ?: 0, 2),

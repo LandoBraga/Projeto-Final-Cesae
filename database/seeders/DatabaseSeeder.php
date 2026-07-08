@@ -6,11 +6,13 @@ use App\Models\User;
 use App\Models\Room;
 use App\Models\Equipment;
 use App\Models\Ticket;
-use App\Models\TicketStatus; // IMPORTANTE: Adicionado o import do modelo TicketStatus
+use App\Models\TicketStatus;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -51,21 +53,27 @@ class DatabaseSeeder extends Seeder
             'name'       => 'Administrador',
             'email'      => 'admin@example.com',
             'profile_id' => $adminProfileId,
-            'password'   => 'admin123',
+            'password'   => Hash::make('admin123'),
+            'active'     => true,
+            'api_token'  => 'admin-token-' . Str::random(40),
         ]);
 
         $tech = User::factory()->create([
             'name'       => 'Técnico',
             'email'      => 'tech@example.com',
             'profile_id' => $techProfileId,
-            'password'   => 'tech123',
+            'password'   => Hash::make('tech123'),
+            'active'     => true,
+            'api_token'  => 'tech-token-' . Str::random(40),
         ]);
 
         $funcionario = User::factory()->create([
             'name'       => 'Utilizador',
             'email'      => 'user@example.com',
             'profile_id' => $userProfileId,
-            'password'   => 'user123',
+            'password'   => Hash::make('user123'),
+            'active'     => true,
+            'api_token'  => 'user-token-' . Str::random(40),
         ]);
 
         // Executa o seeder de configurações/lookups essenciais

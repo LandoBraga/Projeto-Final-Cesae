@@ -12,6 +12,19 @@ class TicketBudgetFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // Criar perfis necessários para os testes
+        \App\Models\UserProfile::create(['name' => User::ROLE_TECHNICIAN]);
+        \App\Models\UserProfile::create(['name' => User::ROLE_ADMIN]);
+        \App\Models\UserProfile::create(['name' => User::ROLE_USER]);
+        
+        // Criar estados de ticket
+        $this->artisan('db:seed', ['--class' => 'TicketLookupSeeder', '--force' => true]);
+    }
+
     public function test_technician_requests_budget_and_admin_approves()
     {
         // Cria utilizadores com papéis específicos para o cenário de teste:
@@ -20,29 +33,34 @@ class TicketBudgetFlowTest extends TestCase
         // - utilizador que cria o ticket
         // Os `api_token` são gerados para simular autenticação via header X-Auth-Token
         // create users
+        $technicianProfile = \App\Models\UserProfile::where('name', User::ROLE_TECHNICIAN)->first();
+        $adminProfile = \App\Models\UserProfile::where('name', User::ROLE_ADMIN)->first();
+        $userProfile = \App\Models\UserProfile::where('name', User::ROLE_USER)->first();
+        
         $technician = User::factory()->create([
-            'role' => User::ROLE_TECHNICIAN,
+            'profile_id' => $technicianProfile->id,
             'api_token' => Str::random(60),
         ]);
 
         $admin = User::factory()->create([
-            'role' => User::ROLE_ADMIN,
+            'profile_id' => $adminProfile->id,
             'api_token' => Str::random(60),
         ]);
 
         $creator = User::factory()->create([
-            'role' => User::ROLE_USER,
+            'profile_id' => $userProfile->id,
             'api_token' => Str::random(60),
         ]);
 
         // Cria um ticket como se fosse reportado por um utilizador comum
         // (estado inicial: aberta)
         // create ticket as creator
+        $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
         $ticket = Ticket::create([
             'user_id' => $creator->id,
             'title' => 'Problema de teste',
             'description' => 'Descrição',
-            'status' => Ticket::STATUS_OPEN,
+            'status_id' => $openStatusId,
             'opened_at' => now(),
         ]);
 
@@ -68,7 +86,8 @@ class TicketBudgetFlowTest extends TestCase
         // Para testar a funcionalidade de pedido de orçamento, reposiciona o
         // ticket para `em curso` e invoca o endpoint `request-budget`.
         // request budget (should already be closed, so reopen flow: set in_progress again)
-        $ticket->status = Ticket::STATUS_IN_PROGRESS;
+        $inProgressStatusId = Ticket::getStatusIdByName(Ticket::STATUS_IN_PROGRESS);
+        $ticket->status_id = $inProgressStatusId;
         $ticket->save();
 
         $response = $this->withHeader('X-Auth-Token', $technician->api_token)
