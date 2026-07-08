@@ -6,17 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        // Tabela PerfisUtilizador do DER
+        Schema::create('user_profiles', function (Blueprint $table) {
+            $table->id(); // PerfilId
+            $table->string('name', 191)->unique(); // NomePerfil
+            $table->timestamps();
+        });
+
+        // Tabela Utilizadores do DER
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('role')->default('user');
-            $table->boolean('active')->default(true);
+            $table->id(); // UtilizadorId
+            $table->string('name'); // NomeCompleto
+            $table->string('email', 191)->unique(); // Email (Protegido com 191)
+            $table->foreignId('profile_id')->nullable()->constrained('user_profiles')->nullOnDelete(); // PerfilId FK
+            $table->boolean('active')->default(true); // Estado (bit)
             $table->string('api_token', 80)->unique()->nullable()->default(null);
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
@@ -25,13 +30,13 @@ return new class extends Migration
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
+            $table->string('email', 191)->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
         Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
+            $table->string('id', 191)->primary();
             $table->foreignId('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
@@ -40,13 +45,11 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
+        Schema::dropIfExists('user_profiles');
     }
 };
