@@ -19,6 +19,13 @@ class CustomAuthMiddleware
                 ?: $request->bearerToken() 
                 ?: ($request->hasCookie('api_token') ? $request->cookie('api_token') : null);
 
+        // Log para debug
+        if (!$request->hasCookie('api_token')) {
+            \Log::debug('Cookie api_token nao encontrado. Headers: ', $request->header());
+        } else {
+            \Log::debug('Cookie api_token encontrado: ' . $request->cookie('api_token'));
+        }
+
         if (!is_string($token) || $token === '') {
             // Se for uma request AJAX/JSON, retornar JSON
             if ($request->expectsJson() || $request->wantsJson()) {

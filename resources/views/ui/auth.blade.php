@@ -126,9 +126,14 @@
 
             localStorage.setItem('api_token', data.token);
             // Definir cookie para autenticação em páginas web
-            document.cookie = `api_token=${data.token}; path=/; max-age=${60 * 24 * 30 * 60}; SameSite=Lax`;
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (30 * 24 * 60 * 60 * 1000));
+            document.cookie = `api_token=${data.token}; path=/; expires=${expires.toUTCString()}`;
             showMessage('Sessão iniciada com sucesso.');
-            window.location.href = '/ui';
+            // Aguardar para garantir que o cookie é salvo
+            setTimeout(() => {
+                window.location.href = '/ui';
+            }, 500);
         });
 
         registerForm.addEventListener('submit', async (event) => {
@@ -153,9 +158,14 @@
 
             localStorage.setItem('api_token', data.token);
             // Definir cookie para autenticação em páginas web
-            document.cookie = `api_token=${data.token}; path=/; max-age=${60 * 24 * 30 * 60}; SameSite=Lax`;
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (30 * 24 * 60 * 60 * 1000));
+            document.cookie = `api_token=${data.token}; path=/; expires=${expires.toUTCString()}`;
             showMessage('Conta criada com sucesso.');
-            window.location.href = '/ui';
+            // Aguardar para garantir que o cookie é salvo
+            setTimeout(() => {
+                window.location.href = '/ui';
+            }, 500);
         });
 
         tabLogin.addEventListener('click', () => setActiveTab('login'));
