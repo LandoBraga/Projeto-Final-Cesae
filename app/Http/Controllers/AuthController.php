@@ -80,8 +80,8 @@ class AuthController extends Controller
         // Definir cookie com o token para autenticação em páginas web
         // Path '/' para que o cookie esteja disponível em todas as páginas
         // SameSite: Lax para permitir em links internos
-        // HttpOnly: false para que o JavaScript possa ler (mas em produção deve ser true)
-        $cookie = cookie('api_token', $user->api_token, 60 * 24 * 30, '/', null, false, true);
+        // HttpOnly: false para que o JavaScript possa ler o cookie (necessário para o frontend)
+        $cookie = cookie('api_token', $user->api_token, 60 * 24 * 30, '/', null, false, false);
 
         return response()->json(['user' => $user, 'token' => $user->api_token])
             ->withCookie($cookie);
@@ -105,7 +105,7 @@ class AuthController extends Controller
         $user->save();
 
         // Remover cookie com o mesmo path e parâmetros
-        $cookie = cookie('api_token', null, -1, '/', null, false, true);
+        $cookie = cookie('api_token', null, -1, '/', null, false, false);
 
         return response()->json(['message' => 'Sessão terminada com sucesso.'])
             ->withCookie($cookie);
