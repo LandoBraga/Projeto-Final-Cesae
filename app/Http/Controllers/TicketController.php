@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Mail\TicketCreated;
 
 class TicketController extends Controller
 {
@@ -67,7 +68,7 @@ class TicketController extends Controller
         }
 
         $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
-        
+
         $ticket = Ticket::create([
             'user_id'      => $user->id,
             'equipment_id' => $data['equipment_id'] ?? null,
@@ -80,9 +81,12 @@ class TicketController extends Controller
         ]);
 
         if ($user->email) {
-            Mail::raw('Novo ticket criado: ' . $ticket->title, function ($message) use ($user, $ticket) {
-                $message->to($user->email)->subject('Novo ticket registado #' . $ticket->id);
-            });
+            // Carrega as relações antes do envio para que a View tenha acesso aos nomes
+            $ticket->load(['equipment', 'room', 'user']);
+
+            // Dispara o email assíncrono (usando a classe TicketCreated)
+            \Illuminate\Support\Facades\Mail::to($user->email)
+                ->send(new \App\Mail\TicketCreated($ticket));
         }
 
         return response()->json(['ticket' => $ticket], 201);
@@ -163,7 +167,7 @@ class TicketController extends Controller
         ]);
 
         $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
-        
+
         $tickets = Ticket::where('status_id', $openStatusId)
             ->with(['equipment', 'room', 'technician', 'user'])
             ->orderBy('created_at', 'asc')

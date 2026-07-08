@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
         // CRIAR PERFIS PADRÃO E OBTER OS IDs (RBAC)
         // ==========================================
 
+
         $adminProfileId = DB::table('user_profiles')->insertGetId([
             'name'       => 'admin',
             'created_at' => now(),
