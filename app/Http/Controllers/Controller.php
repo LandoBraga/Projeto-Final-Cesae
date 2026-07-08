@@ -18,8 +18,10 @@ abstract class Controller
      */
     protected function authenticatedUser(Request $request): User
     {
-        // Obtém o token a partir do cabeçalho customizado ou do Bearer Token padrão
-        $token = $request->header('X-Auth-Token') ?: $request->bearerToken();
+        // Obtém o token a partir do cabeçalho customizado, Bearer Token ou cookie
+        $token = $request->header('X-Auth-Token') 
+                ?: $request->bearerToken() 
+                ?: ($request->hasCookie('api_token') ? $request->cookie('api_token') : null);
 
         // Valida se o token foi enviado e se é uma string válida
         if (!is_string($token) || $token === '') {
@@ -27,7 +29,8 @@ abstract class Controller
         }
 
         // Procura na base de dados pelo utilizador que possui o respetivo token e se encontra ativo
-        $user = User::where('api_token', $token)->where('active', true)->first();
+        // Com eager loading do perfil para evitar N+1 queries
+        $user = User::with('profile')->where('api_token', $token)->where('active', true)->first();
 
         // Se o utilizador não for encontrado ou estiver inativo, interrompe o pedido
         if (!$user) {

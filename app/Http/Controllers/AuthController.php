@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\UserProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -29,7 +30,12 @@ class AuthController extends Controller
         }
 
         // Verificar se o perfil existe e está ativo
-        $profileId = $data['profile_id'] ?? User::where('name', User::ROLE_USER)->first()?->profile_id;
+        if (isset($data['profile_id'])) {
+            $profileId = $data['profile_id'];
+        } else {
+            $defaultProfile = UserProfile::where('name', User::ROLE_USER)->first();
+            $profileId = $defaultProfile?->id;
+        }
         
         if (!$profileId) {
             return response()->json(['message' => 'Perfil inválido'], 422);
@@ -73,11 +79,26 @@ class AuthController extends Controller
             return response()->json(['message' => 'Credenciais inválidas'], 401);
         }
 
+        // Garantir que o utilizador tem um perfil válido
+        if (!$user->profile_id) {
+            $defaultProfile = UserProfile::where('name', User::ROLE_USER)->first();
+            if ($defaultProfile) {
+                $user->profile_id = $defaultProfile->id;
+            }
+        }
+
         // Regenera o API Token a cada novo início de sessão bem-sucedido
         $user->api_token = Str::random(60);
         $user->save();
 
-        return response()->json(['user' => $user, 'token' => $user->api_token]);
+        // Definir cookie com o token para autenticação em páginas web
+        // Path '/' para que o cookie esteja disponível em todas as páginas
+        // SameSite: Lax para permitir em links internos
+        // HttpOnly: false para que o JavaScript possa ler o cookie (necessário para o frontend)
+        $cookie = cookie('api_token', $user->api_token, 60 * 24 * 30, '/', null, false, false);
+
+        return response()->json(['user' => $user, 'token' => $user->api_token])
+            ->withCookie($cookie);
     }
 
     /**
@@ -90,7 +111,6 @@ class AuthController extends Controller
         $user = $this->authenticatedUser($request);
 
         // Revoga o token atual limpando o campo na base de dados
-        // e force save to ensure it's persisted
         $user->api_token = null;
         $user->save();
         
@@ -98,7 +118,11 @@ class AuthController extends Controller
         $user->setRememberToken(null);
         $user->save();
 
-        return response()->json(['message' => 'Sessão terminada com sucesso.']);
+        // Remover cookie com o mesmo path e parâmetros
+        $cookie = cookie('api_token', null, -1, '/', null, false, false);
+
+        return response()->json(['message' => 'Sessão terminada com sucesso.'])
+            ->withCookie($cookie);
     }
 
     /**

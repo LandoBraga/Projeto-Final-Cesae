@@ -64,8 +64,9 @@ function renderEquipments() {
 }
 
 async function loadEquipments(){
-    const res = await fetch('/admin/equipment', {headers: authHeader()});
+    const res = await fetch('/equipments', {headers: authHeader()});
     if(res.status===401){ alert('Autenticação necessária.'); window.location='/ui/login'; return; }
+    if(res.status===403){ alert('Sem permissão para verificar equipamentos.'); return; }
     const data = await res.json();
     allEquipments = data.equipments || [];
     renderEquipments();

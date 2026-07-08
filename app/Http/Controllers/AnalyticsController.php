@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ticket;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
@@ -16,6 +17,12 @@ class AnalyticsController extends Controller
      */
     public function stats(Request $request)
     {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            User::ROLE_TECHNICIAN,
+            User::ROLE_ADMIN,
+        ]);
+        
         $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
         $closedStatusId = Ticket::getStatusIdByName(Ticket::STATUS_CLOSED);
         
@@ -54,6 +61,12 @@ class AnalyticsController extends Controller
      */
     public function exportCsv(Request $request)
     {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            User::ROLE_TECHNICIAN,
+            User::ROLE_ADMIN,
+        ]);
+        
         $headers = [
             'Content-type'        => 'text/csv',
             'Content-Disposition' => 'attachment; filename="tickets_report.csv"',
@@ -65,7 +78,7 @@ class AnalyticsController extends Controller
             $handle = fopen('php://output', 'w');
 
             // Define a linha de cabeçalho do ficheiro CSV
-            fputcsv($handle, ['id','title','status','opened_at','in_progress_at','closed_at','minutes_spent','cost','budget_status','budget_amount']);
+            fputcsv($handle, ['id','title','status_id','opened_at','in_progress_at','closed_at','minutes_spent','cost','budget_status','budget_amount']);
 
             // O método cursor() utiliza PHP Generators por baixo do capô.
             // Mantém apenas 1 registo Eloquent de cada vez na memória do servidor, permitindo exportar
@@ -74,7 +87,7 @@ class AnalyticsController extends Controller
                 fputcsv($handle, [
                     $t->id,
                     $t->title,
-                    $t->status,
+                    $t->status_id,
                     optional($t->opened_at)->toDateTimeString(),
                     optional($t->in_progress_at)->toDateTimeString(),
                     optional($t->closed_at)->toDateTimeString(),
@@ -97,10 +110,16 @@ class AnalyticsController extends Controller
      */
     public function exportPdf(Request $request)
     {
+        $user = $this->authenticatedUser($request);
+        $this->requireRole($user, [
+            User::ROLE_TECHNICIAN,
+            User::ROLE_ADMIN,
+        ]);
+        
         // Em vez de submeter coleções completas e pesadas ao DOMPDF (que já consome muita memória),
         // filtramos estritamente as colunas necessárias que vão ser renderizadas na vista do relatório.
         $tickets = Ticket::select([
-            'id', 'title', 'status', 'opened_at', 'in_progress_at',
+            'id', 'title', 'status_id', 'opened_at', 'in_progress_at',
             'closed_at', 'minutes_spent', 'cost', 'budget_status', 'budget_amount'
         ])->get();
 

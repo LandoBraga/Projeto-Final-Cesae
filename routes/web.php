@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Rotas Públicas & Interfaces de Utilizador (Acesso Aberto)
+| Rotas Públicas (Acesso Aberto)
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
@@ -22,14 +22,8 @@ Route::get('/ui/login', function () {
     return view('ui.auth');
 })->name('ui.login');
 
-// Documentação da API e Interfaces Web
+// Documentação da API
 Route::get('/docs/openapi', [ApiDocsController::class, 'swagger']);
-Route::get('/ui',            [UiController::class, 'index']);
-Route::get('/ui/tickets',    [UiController::class, 'tickets']);
-Route::get('/ui/tickets/{id}', [UiController::class, 'ticketDetail']);
-Route::get('/ui/equipments', [UiController::class, 'equipments']);
-Route::get('/ui/users',      [UiController::class, 'users']);
-Route::get('/ui/audits',     [UiController::class, 'audits']);
 
 // Endpoints Públicos de Autenticação (Guest) - com rate limiting
 Route::post('/register', [AuthController::class, 'register'])->middleware(['rate.limit:5,1']);
@@ -46,6 +40,25 @@ Route::middleware(['custom.auth'])->group(function () {
     // Ações de conta comuns a qualquer utilizador logado
     Route::post('/logout',           [AuthController::class, 'logout']);
     Route::post('/password/change',  [AuthController::class, 'changePassword']);
+
+    // ========================================
+    // Rotas de Interface Web (UI) Protegidas
+    // ========================================
+
+    // UI - Acesso para todos os utilizadores autenticados
+    Route::middleware([])->group(function () {
+        Route::get('/ui',            [UiController::class, 'index']);
+        Route::get('/ui/tickets',    [UiController::class, 'tickets']);
+        Route::get('/ui/tickets/{id}', [UiController::class, 'ticketDetail']);
+        Route::get('/ui/equipments', [UiController::class, 'equipments']);
+        Route::get('/equipments',    [UiController::class, 'getEquipments']);
+    });
+
+    // UI - Acesso para Técnicos e Administradores
+    Route::middleware(['role:technician,admin'])->group(function () {
+        Route::get('/ui/users',      [UiController::class, 'users']);
+        Route::get('/ui/audits',     [UiController::class, 'audits']);
+    });
 
     // Consultas gerais e interações nos tickets (Policiamento fino feito por ID nos métodos)
     Route::get('/tickets',              [TicketController::class, 'index']);

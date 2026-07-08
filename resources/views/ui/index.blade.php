@@ -39,6 +39,17 @@
 @push('scripts')
 <script>
 async function loadMetrics(){
+    // Apenas técnicos e administradores podem ver analytics
+    const userRole = '{{ $user->profile->name ?? "" }}';
+    if (userRole !== 'technician' && userRole !== 'admin') {
+        // Para usuários normais, esconder o painel de métricas ou mostrar mensagem
+        const panel = document.getElementById('metricsPanel');
+        if (panel) {
+            panel.innerHTML = '<div class="rounded-2xl border border-white/10 bg-slate-950/60 p-5 col-span-full"><p class="text-sm text-slate-400">Painel de métricas disponível apenas para técnicos e administradores</p></div>';
+        }
+        return;
+    }
+    
     const res = await fetch('/analytics', {headers: authHeader()});
     if(!res.ok) return;
     const data = await res.json();

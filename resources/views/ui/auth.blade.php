@@ -125,6 +125,8 @@
             }
 
             localStorage.setItem('api_token', data.token);
+            // Definir cookie para autenticação em páginas web
+            document.cookie = `api_token=${data.token}; path=/; max-age=${60 * 24 * 30 * 60}; SameSite=Lax`;
             showMessage('Sessão iniciada com sucesso.');
             window.location.href = '/ui';
         });
@@ -150,6 +152,8 @@
             }
 
             localStorage.setItem('api_token', data.token);
+            // Definir cookie para autenticação em páginas web
+            document.cookie = `api_token=${data.token}; path=/; max-age=${60 * 24 * 30 * 60}; SameSite=Lax`;
             showMessage('Conta criada com sucesso.');
             window.location.href = '/ui';
         });

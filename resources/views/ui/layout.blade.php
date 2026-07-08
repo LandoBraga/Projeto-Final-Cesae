@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Gestão de Avarias - Painel</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @stack('styles')
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100">
     <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_25%),linear-gradient(135deg,_#020617_0%,_#111827_100%)]">
@@ -31,6 +32,7 @@
     </div>
 
 <script>
+// Função para obter cabeçalhos de autenticação
 function authHeader(){
     const token = localStorage.getItem('api_token');
     const headers = {
@@ -44,6 +46,21 @@ function authHeader(){
     return headers;
 }
 
+// Função para verificar se o utilizador está autenticado
+function isAuthenticated() {
+    return !!localStorage.getItem('api_token');
+}
+
+// Função para redirecionar para login se não autenticado
+function requireAuth() {
+    if (!isAuthenticated()) {
+        window.location.href = '/ui/login';
+        return false;
+    }
+    return true;
+}
+
+// Renderizar a box de autenticação no header
 function renderAuthBox(){
     const box = document.getElementById('authBox');
     const token = localStorage.getItem('api_token');
@@ -54,16 +71,29 @@ function renderAuthBox(){
     }
 }
 
+// Função para fazer logout
 function logout(){
     const token = localStorage.getItem('api_token');
     if(!token) return;
     fetch('/logout', {method:'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeader())})
-    .finally(()=>{localStorage.removeItem('api_token'); renderAuthBox(); window.location='/ui';});
+    .finally(()=>{
+        localStorage.removeItem('api_token');
+        // Remover cookie
+        document.cookie = 'api_token=; path=/; max-age=0; SameSite=Lax';
+        renderAuthBox(); 
+        window.location='/ui/login';
+    });
+}
+
+// Verificar autenticação quando a página carrega
+if (typeof requireAuthOnLoad !== 'undefined' && requireAuthOnLoad) {
+    requireAuth();
 }
 
 renderAuthBox();
 </script>
 
+@stack('scripts-top')
 @stack('scripts')
 </body>
 </html>
