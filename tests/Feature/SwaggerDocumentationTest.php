@@ -9,9 +9,18 @@ class SwaggerDocumentationTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function loadSpec(): array
+    {
+        return json_decode(
+            file_get_contents(storage_path('api-docs/api-docs.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR
+        );
+    }
+
     public function test_swagger_json_includes_protected_endpoints_and_security_schemes(): void
     {
-        $spec = json_decode(file_get_contents(storage_path('api-docs/api-docs.json')), true, flags: JSON_THROW_ON_ERROR);
+        $spec = $this->loadSpec();
 
         $this->assertArrayHasKey('paths', $spec);
         $this->assertArrayHasKey('components', $spec);
@@ -60,6 +69,7 @@ class SwaggerDocumentationTest extends TestCase
         $this->assertArrayHasKey('/admin/rooms/{id}', $spec['paths']);
         $this->assertArrayHasKey('/admin/rooms/{id}/inactive', $spec['paths']);
     }
+
 
     public function test_swagger_ui_route_is_available(): void
     {

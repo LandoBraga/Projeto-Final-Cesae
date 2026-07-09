@@ -60,4 +60,53 @@ class TicketSearchTest extends TestCase
         $response->assertJsonCount(1, 'tickets.data');
         $response->assertJsonPath('tickets.data.0.title', 'Motor compressor overheating');
     }
+
+    public function test_ticket_search_returns_empty_results_when_no_match(): void
+    {
+        $technicianProfile = \App\Models\UserProfile::where('name', User::ROLE_TECHNICIAN)->first();
+
+        $technician = User::factory()->create([
+            'profile_id' => $technicianProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $response = $this->withHeader('X-Auth-Token', $technician->api_token)
+            ->getJson('/tickets/search?q=this-should-not-match-anything');
+
+        $response->assertOk();
+        $response->assertJsonCount(0, 'tickets.data');
+    }
+
+    public function test_ticket_search_rejects_invalid_date_range(): void
+    {
+        $technicianProfile = \App\Models\UserProfile::where('name', User::ROLE_TECHNICIAN)->first();
+
+        $technician = User::factory()->create([
+            'profile_id' => $technicianProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $response = $this->withHeader('X-Auth-Token', $technician->api_token)
+            ->getJson('/tickets/search?date_from=' . now()->toDateString() . '&date_to=' . now()->subDays(1)->toDateString());
+
+        $response->assertStatus(422);
+        $response->assertJsonStructure(['errors' => ['date_to']]);
+    }
+
+    public function test_ticket_search_validates_priority_enum(): void
+    {
+        $technicianProfile = \App\Models\UserProfile::where('name', User::ROLE_TECHNICIAN)->first();
+
+        $technician = User::factory()->create([
+            'profile_id' => $technicianProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $response = $this->withHeader('X-Auth-Token', $technician->api_token)
+            ->getJson('/tickets/search?priority=invalid-priority');
+
+        $response->assertStatus(422);
+        $response->assertJsonStructure(['errors' => ['priority']]);
+    }
+
 }
