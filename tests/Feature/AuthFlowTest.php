@@ -61,6 +61,24 @@ class AuthFlowTest extends TestCase
         $this->assertNull($user->api_token);
     }
 
+    public function test_register_creates_default_profile_when_none_exists(): void
+    {
+        UserProfile::query()->delete();
+
+        $response = $this->postJson('/register', [
+            'name' => 'Fresh User',
+            'email' => 'fresh@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ]);
+
+        $response->assertCreated();
+
+        $user = User::where('email', 'fresh@example.com')->firstOrFail();
+        $this->assertNotNull($user->profile_id);
+        $this->assertEquals(User::ROLE_USER, $user->profile->name);
+    }
+
     public function test_register_rejects_invalid_payload(): void
     {
         $response = $this->postJson('/register', [

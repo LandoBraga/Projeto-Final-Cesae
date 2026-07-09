@@ -62,14 +62,15 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $profileId = isset($data['profile_id'])
-            ? $data['profile_id']
-            : UserProfile::where('name', User::ROLE_USER)->first()?->id;
+        $profile = isset($data['profile_id'])
+            ? UserProfile::find($data['profile_id'])
+            : UserProfile::where('name', User::ROLE_USER)->first();
 
-        // Sem perfil válido não criamos o utilizador, para não deixar contas órfãs.
-        if (!$profileId) {
-            return response()->json(['message' => 'Perfil inválido'], 422);
+        if (!$profile) {
+            $profile = UserProfile::firstOrCreate(['name' => User::ROLE_USER]);
         }
+
+        $profileId = $profile->id;
 
         $user = User::create([
             'name' => $data['name'],
@@ -80,7 +81,8 @@ class AuthController extends Controller
             'api_token' => Str::random(60),
         ]);
 
-        return response()->json(['user' => $user, 'token' => $user->api_token], 201);
+        return response()->json(['user' => $user, 'token' => $user->api_token], 201)
+            ->cookie('api_token', $user->api_token, 60 * 24 * 30, '/', null, false, false);
     }
 
     #[OA\Post(
@@ -138,17 +140,16 @@ class AuthController extends Controller
 
         // Garante que, se o registo ficou sem perfil, o acesso volta a usar o perfil base.
         if (!$user->profile_id) {
-            $defaultProfile = UserProfile::where('name', User::ROLE_USER)->first();
-            if ($defaultProfile) {
-                $user->profile_id = $defaultProfile->id;
-            }
+            $defaultProfile = UserProfile::firstOrCreate(['name' => User::ROLE_USER]);
+            $user->profile_id = $defaultProfile->id;
         }
 
         // Renovar o token invalida acessos antigos e simplifica a gestão da sessão.
         $user->api_token = Str::random(60);
         $user->save();
 
-        return response()->json(['user' => $user, 'token' => $user->api_token]);
+        return response()->json(['user' => $user, 'token' => $user->api_token])
+            ->cookie('api_token', $user->api_token, 60 * 24 * 30, '/', null, false, false);
     }
 
     public function logout(Request $request)

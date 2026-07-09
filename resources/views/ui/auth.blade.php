@@ -60,6 +60,10 @@
                             <label for="registerPassword" class="mb-2 block text-sm font-medium text-slate-300">Palavra-passe</label>
                             <input id="registerPassword" name="password" type="password" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-cyan-500" placeholder="Mínimo 8 caracteres">
                         </div>
+                        <div>
+                            <label for="registerPasswordConfirmation" class="mb-2 block text-sm font-medium text-slate-300">Confirmar palavra-passe</label>
+                            <input id="registerPasswordConfirmation" name="password_confirmation" type="password" required class="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none ring-0 focus:border-cyan-500" placeholder="Repita a palavra-passe">
+                        </div>
                         <button type="submit" class="w-full rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-500/20">Criar conta</button>
                     </form>
 
@@ -138,10 +142,19 @@
 
         registerForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            const password = document.getElementById('registerPassword').value;
+            const passwordConfirmation = document.getElementById('registerPasswordConfirmation').value;
+
+            if (password !== passwordConfirmation) {
+                showMessage('As palavras-passe não coincidem.', true);
+                return;
+            }
+
             const payload = {
                 name: document.getElementById('registerName').value,
                 email: document.getElementById('registerEmail').value,
-                password: document.getElementById('registerPassword').value
+                password,
+                password_confirmation: passwordConfirmation
             };
 
             const response = await fetch('/register', {
