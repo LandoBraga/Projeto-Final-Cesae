@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class CustomAuthMiddleware
@@ -14,20 +16,22 @@ class CustomAuthMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Procura pelo token no cabeçalho customizado, Bearer, ou cookie
+        // O método cookie() já retorna null se o cookie não existir
         $token = $request->header('X-Auth-Token')
-                ?: $request->bearerToken()
-                ?: ($request->hasCookie('api_token') ? $request->cookie('api_token') : null);
+            ?: $request->bearerToken()
+            ?: $request->cookie('api_token');
+
+        // Forma correta de validar a existência do cookie usando o componente Symfony subjacente
+        $hasCookie = $request->cookies->has('api_token');
 
         // Log para debug
-        if (!$request->hasCookie('api_token')) {
-            \Log::debug('Cookie api_token nao encontrado. Headers: ', $request->header());
+        if (!$hasCookie) {
+            Log::debug('Cookie api_token nao encontrado. Headers: ', $request->header());
         } else {
-            \Log::debug('Cookie api_token encontrado: ' . $request->cookie('api_token'));
+            Log::debug('Cookie api_token encontrado: ' . $request->cookie('api_token'));
         }
 
         if (!is_string($token) || $token === '') {
-            // Se for uma request AJAX/JSON, retornar JSON
             if ($request->expectsJson() || $request->wantsJson()) {
                 return response()->json([
                     'message' => 'Autenticação necessária. Envie X-Auth-Token no cabeçalho.',
@@ -35,42 +39,44 @@ class CustomAuthMiddleware
                 ], 401);
             }
 
-            // Se for uma request web normal, redirecionar para login
             return redirect('/ui/login');
         }
 
         // Valida o token e se o utilizador está ativo
-        // Com eager loading do perfil para evitar N+1 queries
         $user = User::with('profile')->where('api_token', $token)->where('active', true)->first();
 
         if (!$user) {
-            \Log::debug('CustomAuthMiddleware - Invalid or inactive user token', [
-                'has_cookie' => $request->hasCookie('api_token'),
+            Log::debug('CustomAuthMiddleware - Invalid or inactive user token', [
+                'has_cookie' => $hasCookie,
                 'token_value' => is_string($token) ? $token : null,
             ]);
 
-            // Token inválido ou utilizador inativo - limpar cookie se existir
-            if ($request->hasCookie('api_token')) {
-                return redirect('/ui/login')->withCookie(cookie()->forget('api_token'));
-            }
-
+            // 1ª Prioridade: Se a rota espera JSON, responde SEMPRE com JSON
             if ($request->expectsJson() || $request->wantsJson()) {
-                return response()->json([
+                $jsonResponse = response()->json([
                     'message' => 'Token inválido ou utilizador inativo.',
                     'error_code' => 401,
                     'errors' => [
                         'api_token' => ['Invalid or user is inactive.']
                     ]
                 ], 401);
+
+                // Se mesmo na API veio um cookie inválido, limpamo-lo na resposta
+                return $hasCookie ? $jsonResponse->withCookie(cookie()->forget('api_token')) : $jsonResponse;
+            }
+
+            // 2ª Prioridade: Rotas Web normais
+            if ($hasCookie) {
+                return redirect('/ui/login')->withCookie(cookie()->forget('api_token'));
             }
 
             return redirect('/ui/login');
         }
 
-        // Verifica se o utilizador tem um perfil válido (role definido)
+        // Verifica se o utilizador tem um perfil válido
         if (!$user->profile_id || !$user->profile?->name) {
-            \Log::debug('CustomAuthMiddleware - User has no valid profile', [
-                'has_cookie' => $request->hasCookie('api_token'),
+            Log::debug('CustomAuthMiddleware - User has no valid profile', [
+                'has_cookie' => $hasCookie,
                 'token_value' => is_string($token) ? $token : null,
                 'profile_id' => $user->profile_id ?? null,
             ]);
@@ -88,8 +94,11 @@ class CustomAuthMiddleware
             return redirect('/ui/login');
         }
 
-        // Registra a autenticação usando Laravel's Auth::login() (melhor prática e mais seguro que shouldUse)
-        \Auth::guard('api')->login($user, true);
+        // Define o utilizador autenticado no Guard para a requisição atual
+        Auth::guard('api')->setUser($user);
+
+        // Opcional: Garante que qualquer chamada futura a Auth::user() nesta requisição use o guard 'api' automaticamente
+        Auth::shouldUse('api');
 
         return $next($request);
     }
