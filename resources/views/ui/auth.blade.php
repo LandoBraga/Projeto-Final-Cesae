@@ -112,32 +112,38 @@
         loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
             const payload = {
-                email: document.getElementById('loginEmail').value,
+                email: document.getElementById('loginEmail').value.trim(),
                 password: document.getElementById('loginPassword').value
             };
 
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: buildHeaders(),
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-                showMessage(data.message || 'Não foi possível iniciar sessão.', true);
+            if (!payload.email || !payload.password) {
+                showMessage('Preencha o email e a palavra-passe.', true);
                 return;
             }
 
-            localStorage.setItem('api_token', data.token);
-            // Definir cookie para autenticação em páginas web
-            const expires = new Date();
-            expires.setTime(expires.getTime() + (30 * 24 * 60 * 60 * 1000));
-            document.cookie = `api_token=${data.token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`;
-            showMessage('Sessão iniciada com sucesso.');
-            // Aguardar para garantir que o cookie é salvo
-            setTimeout(() => {
-                window.location.href = '/ui';
-            }, 500);
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: buildHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    showMessage(data.message || 'Não foi possível iniciar sessão.', true);
+                    return;
+                }
+
+                localStorage.setItem('api_token', data.token || '');
+                const expires = new Date();
+                expires.setTime(expires.getTime() + (30 * 24 * 60 * 60 * 1000));
+                document.cookie = `api_token=${encodeURIComponent(data.token || '')}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`;
+                showMessage('Sessão iniciada com sucesso.');
+                window.location.replace('/ui');
+            } catch (error) {
+                showMessage('Não foi possível iniciar sessão. Tente novamente.', true);
+            }
         });
 
         registerForm.addEventListener('submit', async (event) => {
@@ -151,34 +157,35 @@
             }
 
             const payload = {
-                name: document.getElementById('registerName').value,
-                email: document.getElementById('registerEmail').value,
+                name: document.getElementById('registerName').value.trim(),
+                email: document.getElementById('registerEmail').value.trim(),
                 password,
                 password_confirmation: passwordConfirmation
             };
 
-            const response = await fetch('/register', {
-                method: 'POST',
-                headers: buildHeaders(),
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: buildHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json().catch(() => ({}));
 
-            if (!response.ok) {
-                showMessage(data.message || 'Não foi possível criar a conta.', true);
-                return;
+                if (!response.ok) {
+                    showMessage(data.message || 'Não foi possível criar a conta.', true);
+                    return;
+                }
+
+                localStorage.setItem('api_token', data.token || '');
+                const expires = new Date();
+                expires.setTime(expires.getTime() + (30 * 24 * 60 * 60 * 1000));
+                document.cookie = `api_token=${encodeURIComponent(data.token || '')}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`;
+                showMessage('Conta criada com sucesso.');
+                window.location.replace('/ui');
+            } catch (error) {
+                showMessage('Não foi possível criar a conta. Tente novamente.', true);
             }
-
-            localStorage.setItem('api_token', data.token);
-            // Definir cookie para autenticação em páginas web
-            const expires = new Date();
-            expires.setTime(expires.getTime() + (30 * 24 * 60 * 60 * 1000));
-            document.cookie = `api_token=${data.token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`;
-            showMessage('Conta criada com sucesso.');
-            // Aguardar para garantir que o cookie é salvo
-            setTimeout(() => {
-                window.location.href = '/ui';
-            }, 500);
         });
 
         tabLogin.addEventListener('click', () => setActiveTab('login'));

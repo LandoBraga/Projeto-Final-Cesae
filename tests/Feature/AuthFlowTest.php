@@ -79,6 +79,26 @@ class AuthFlowTest extends TestCase
         $this->assertEquals(User::ROLE_USER, $user->profile->name);
     }
 
+    public function test_login_does_not_require_csrf_token(): void
+    {
+        User::create([
+            'name' => 'Demo User',
+            'email' => 'demo@example.com',
+            'password' => Hash::make('password123'),
+            'profile_id' => UserProfile::where('name', User::ROLE_USER)->value('id'),
+            'active' => true,
+            'api_token' => Str::random(60),
+        ]);
+
+        $response = $this->postJson('/login', [
+            'email' => 'demo@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonStructure(['user', 'token']);
+    }
+
     public function test_register_rejects_invalid_payload(): void
     {
         $response = $this->postJson('/register', [

@@ -81,6 +81,8 @@ class AuthController extends Controller
             'api_token' => Str::random(60),
         ]);
 
+        $request->session()->put('api_token', $user->api_token);
+
         return response()->json(['user' => $user, 'token' => $user->api_token], 201)
             ->cookie('api_token', $user->api_token, 60 * 24 * 30, '/', null, false, false);
     }
@@ -147,6 +149,8 @@ class AuthController extends Controller
         // Renovar o token invalida acessos antigos e simplifica a gestão da sessão.
         $user->api_token = Str::random(60);
         $user->save();
+
+        $request->session()->put('api_token', $user->api_token);
 
         return response()->json(['user' => $user, 'token' => $user->api_token])
             ->cookie('api_token', $user->api_token, 60 * 24 * 30, '/', null, false, false);

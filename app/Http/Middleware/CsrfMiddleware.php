@@ -76,6 +76,11 @@ class CsrfMiddleware
             return true;
         }
 
+        // Public authentication endpoints should be accessible without a session CSRF token.
+        if ($request->is('login') || $request->is('register')) {
+            return true;
+        }
+
         // Previne erro caso a rota atual não tenha nome definido (null)
         $route = $request->route();
         $routeName = $route ? $route->getName() : '';

@@ -7,6 +7,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UiController;
 use App\Http\Controllers\AuditController;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -26,8 +27,13 @@ Route::get('/ui/login', function () {
 Route::redirect('/docs/openapi', '/api/documentation');
 
 // Endpoints Públicos de Autenticação (Guest) - Com Throttle nativo do Laravel
-Route::post('/register', [AuthController::class, 'register'])->middleware(['rate.limit:5,1']);
-Route::post('/login',    [AuthController::class, 'login'])->middleware(['rate.limit:5,1']);
+Route::post('/register', [AuthController::class, 'register'])
+    ->middleware(['rate.limit:5,1'])
+    ->withoutMiddleware([VerifyCsrfToken::class]);
+
+Route::post('/login',    [AuthController::class, 'login'])
+    ->middleware(['rate.limit:5,1'])
+    ->withoutMiddleware([VerifyCsrfToken::class]);
 
 
 /*

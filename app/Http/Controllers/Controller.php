@@ -19,9 +19,10 @@ abstract class Controller
     protected function authenticatedUser(Request $request): User
     {
         // Obtém o token a partir do cabeçalho customizado, Bearer Token ou cookie
-        $token = $request->header('X-Auth-Token') 
-                ?: $request->bearerToken() 
-                ?: ($request->hasCookie('api_token') ? $request->cookie('api_token') : null);
+        $token = $request->header('X-Auth-Token')
+                ?: $request->bearerToken()
+                ?: ($request->hasCookie('api_token') ? $request->cookie('api_token') : null)
+                ?: ($request->session()->has('api_token') ? $request->session()->get('api_token') : null);
 
         // Valida se o token foi enviado e se é uma string válida
         if (!is_string($token) || $token === '') {

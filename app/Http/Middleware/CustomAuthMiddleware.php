@@ -16,19 +16,18 @@ class CustomAuthMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // O método cookie() já retorna null se o cookie não existir
         $token = $request->header('X-Auth-Token')
             ?: $request->bearerToken()
-            ?: $request->cookie('api_token');
+            ?: $request->cookie('api_token')
+            ?: $request->session()->get('api_token');
 
-        // Forma correta de validar a existência do cookie usando o componente Symfony subjacente
         $hasCookie = $request->cookies->has('api_token');
+        $hasSessionToken = is_string($request->session()->get('api_token')) && $request->session()->get('api_token') !== '';
 
-        // Log para debug
-        if (!$hasCookie) {
+        if (!$hasCookie && !$hasSessionToken) {
             Log::debug('Cookie api_token nao encontrado. Headers: ', $request->header());
         } else {
-            Log::debug('Cookie api_token encontrado: ' . $request->cookie('api_token'));
+            Log::debug('Cookie api_token encontrado: ' . ($request->cookie('api_token') ?? 'session-token'));
         }
 
         if (!is_string($token) || $token === '') {
