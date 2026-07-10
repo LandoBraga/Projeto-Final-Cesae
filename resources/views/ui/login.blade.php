@@ -1,86 +1,173 @@
 @extends('ui.layout')
 
 @section('content')
-<div class="flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 min-h-[75vh]">
+<div class="relative min-h-[calc(100vh-80px)] overflow-hidden">
 
-    {{-- Logo / Nome do Sistema (Alinhado com a Identidade da Sidebar) --}}
-    <div class="mb-8 text-center animate-[fadeIn_0.4s_ease-out]">
-        <div class="flex items-center justify-center gap-3.5 mb-2">
-            <div class="bg-primary h-12 w-12 rounded-xl flex items-center justify-center shadow-md shadow-primary/20">
-                <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 00-1 1v1a2 2 0 11-4 0v-1a1 1 0 00-1-1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path>
-                </svg>
-            </div>
-            <div class="text-left">
-                <h1 class="text-xl font-bold tracking-tight text-[var(--text)] leading-none">Avarias</h1>
-                <p class="text-[10px] uppercase tracking-[0.2em] text-[var(--text-soft)] font-bold mt-1">Gestão & Manutenção</p>
-            </div>
+    {{-- Background Decorativo --}}
+    <div class="absolute inset-0 -z-10">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.08),transparent_45%)] dark:bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.12),transparent_45%)]"></div>
+
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 h-[420px] w-[420px] rounded-full bg-primary/10 blur-3xl"></div>
+
+        <div class="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]"
+             style="background-image: linear-gradient(var(--border) 1px, transparent 1px),
+                                    linear-gradient(90deg,var(--border) 1px,transparent 1px);
+                    background-size:40px 40px;">
         </div>
     </div>
 
-    {{-- Cartão de Login Semântico --}}
-    <div class="w-full max-w-md bg-[var(--surface)] rounded-2xl shadow-sm border border-[var(--border)] p-8 sm:p-10 transition-all duration-200">
+    <div class="flex items-center justify-center px-6 py-12">
 
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold text-[var(--text)] tracking-tight">Bem-vindo de volta</h2>
-            <p class="text-[var(--text-soft)] mt-1.5 text-sm">Insira as suas credenciais para aceder ao painel.</p>
-        </div>
+        <div class="w-full max-w-lg">
 
-        <form id="loginForm" class="space-y-5">
-            {{-- Campo: Email --}}
-            <div>
-                <label for="email" class="block text-[11px] font-bold uppercase tracking-wider text-[var(--text-soft)] mb-2">
-                    Endereço de email
-                </label>
-                <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    autocomplete="email"
-                    placeholder="exemplo@dominio.com"
-                    class="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text)] placeholder-[var(--text-soft)] outline-none transition-all focus:border-[var(--text)]"
-                >
-            </div>
+            {{-- Branding --}}
+            <div class="text-center mb-10">
 
-            {{-- Campo: Palavra-passe --}}
-            <div>
-                <div class="flex justify-between mb-2">
-                    <label for="password" class="text-[11px] font-bold uppercase tracking-wider text-[var(--text-soft)]">
-                        Palavra-passe
-                    </label>
-                    <a href="#" class="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline">
-                        Esqueceu-se?
-                    </a>
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-primary shadow-lg shadow-primary/20 mb-6">
+
+                    <svg class="w-10 h-10 text-black"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2.5"
+                         viewBox="0 0 24 24">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 00-1 1v1a2 2 0 11-4 0v-1a1 1 0 00-1-1H7a1 1 0 01-1-1v-3a1 1 0 011-1h1a2 2 0 100-4H7a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/>
+                    </svg>
+
                 </div>
-                <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    autocomplete="current-password"
-                    placeholder="••••••••"
-                    class="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text)] placeholder-[var(--text-soft)] outline-none transition-all focus:border-[var(--text)]"
-                >
+
+                <h1 class="text-4xl font-extrabold tracking-tight text-[var(--text)]">
+                    Gestão de Avarias
+                </h1>
+
+                <p class="mt-3 text-[var(--text-soft)] max-w-sm mx-auto leading-relaxed">
+                    Plataforma central para gestão, manutenção e acompanhamento de equipamentos.
+                </p>
+
             </div>
 
-            {{-- Botão de Submissão Core Accent --}}
-            <button
-                type="submit"
-                class="w-full inline-flex items-center justify-center px-6 py-3.5 bg-primary text-black text-sm font-bold rounded-xl shadow-md shadow-primary/10 transition-all duration-200 hover:opacity-95 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-            >
-                Entrar no Sistema
-            </button>
-        </form>
+            {{-- Card --}}
+            <div class="relative rounded-3xl border border-[var(--border)] bg-[var(--surface)] shadow-xl shadow-black/5 dark:shadow-black/30 overflow-hidden">
 
-        {{-- Feedback Dinâmico Contextual --}}
-        <div id="msg" aria-live="polite" class="mt-4 text-center text-xs font-medium transition-all duration-300 min-h-[1.5rem]"></div>
+                <div class="absolute inset-x-0 top-0 h-1 bg-primary"></div>
+
+                <div class="p-10">
+
+                    <div class="mb-8">
+
+                        <span class="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-4">
+                            Autenticação
+                        </span>
+
+                        <h2 class="text-3xl font-bold text-[var(--text)]">
+                            Bem-vindo novamente
+                        </h2>
+
+                        <p class="mt-2 text-sm text-[var(--text-soft)]">
+                            Introduza as suas credenciais para aceder ao painel administrativo.
+                        </p>
+
+                    </div>
+
+                    <form id="loginForm" class="space-y-6">
+
+                        <div>
+
+                            <label class="block mb-2 text-xs font-bold uppercase tracking-wider text-[var(--text-soft)]">
+                                Email
+                            </label>
+
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                autocomplete="email"
+                                required
+                                placeholder="utilizador@empresa.pt"
+                                class="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-5 py-3.5 text-sm text-[var(--text)] outline-none transition-all duration-200 focus:border-primary focus:ring-4 focus:ring-primary/15">
+
+                        </div>
+
+                        <div>
+
+                            <div class="flex items-center justify-between mb-2">
+
+                                <label class="text-xs font-bold uppercase tracking-wider text-[var(--text-soft)]">
+                                    Palavra-passe
+                                </label>
+
+                                <a href="#" class="text-sm font-medium text-primary hover:underline">
+                                    Esqueceu-se?
+                                </a>
+
+                            </div>
+
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autocomplete="current-password"
+                                required
+                                placeholder="••••••••"
+                                class="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-5 py-3.5 text-sm text-[var(--text)] outline-none transition-all duration-200 focus:border-primary focus:ring-4 focus:ring-primary/15">
+
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="group w-full rounded-2xl bg-primary py-3.5 font-bold text-black transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 active:translate-y-0">
+
+                            <span class="flex items-center justify-center gap-2">
+
+                                Entrar no Sistema
+
+                                <svg class="w-4 h-4 transition-transform group-hover:translate-x-1"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="2"
+                                     viewBox="0 0 24 24">
+
+                                    <path stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                          d="M9 5l7 7-7 7"/>
+
+                                </svg>
+
+                            </span>
+
+                        </button>
+
+                    </form>
+
+                    <div
+                        id="msg"
+                        aria-live="polite"
+                        class="mt-5 min-h-[42px] rounded-2xl text-center text-sm font-medium flex items-center justify-center transition-all">
+                    </div>
+
+                </div>
+
+            </div>
+
+            {{-- Rodapé --}}
+            <div class="mt-8 text-center">
+
+                <p class="text-xs text-[var(--text-soft)]">
+                    © {{ date('Y') }} Sistema de Gestão de Avarias
+                </p>
+
+                <p class="mt-1 text-xs text-[var(--text-soft)] opacity-70">
+                    Desenvolvido em Laravel • Interface Responsiva • Light & Dark Mode
+                </p>
+
+            </div>
+
+        </div>
 
     </div>
 
-    <p class="mt-8 text-[var(--text-soft)] text-xs font-medium">
-        &copy; {{ date('Y') }} Central de Operações. Todos os direitos reservados.
-    </p>
 </div>
 @endsection
 
