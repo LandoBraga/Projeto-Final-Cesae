@@ -68,6 +68,21 @@ class AuditEndpointsTest extends TestCase
         ]);
     }
 
+    public function test_admin_audit_endpoint_returns_empty_payload_when_no_history_exists(): void
+    {
+        $adminProfile = UserProfile::where('name', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::factory()->create([
+            'profile_id' => $adminProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $this->withHeader('X-Auth-Token', $admin->api_token)
+            ->getJson('/admin/audits')
+            ->assertOk()
+            ->assertJsonStructure(['audits'])
+            ->assertJsonPath('audits.data', []);
+    }
+
     public function test_admin_audit_endpoint_is_forbidden_for_common_user(): void
     {
         $userProfile = UserProfile::where('name', User::ROLE_USER)->firstOrFail();

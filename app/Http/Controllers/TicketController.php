@@ -330,6 +330,35 @@ class TicketController extends Controller
     /**
      * Adiciona um comentário técnico ou de progresso ao ticket.
      */
+    public function cancelTicket(Request $request, int $id)
+    {
+        $user = $this->authenticatedUser($request);
+
+        if (!$user->isCommon()) {
+            return response()->json(['message' => 'Acesso negado'], 403);
+        }
+
+        $ticket = Ticket::find($id);
+        if (!$ticket) {
+            return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        if ($ticket->user_id !== $user->id) {
+            return response()->json(['message' => 'Acesso negado'], 403);
+        }
+
+        if (!$ticket->hasStatus(Ticket::STATUS_OPEN)) {
+            return response()->json(['message' => 'Só é possível cancelar tickets abertos'], 403);
+        }
+
+        $cancelledStatusId = Ticket::getStatusIdByName(Ticket::STATUS_CANCELLED);
+        $ticket->status_id = $cancelledStatusId;
+        $ticket->closed_at = now();
+        $ticket->save();
+
+        return response()->json(['ticket' => $ticket]);
+    }
+
     public function addComment(Request $request, int $id)
     {
         $user = $this->authenticatedUser($request);
@@ -444,17 +473,6 @@ class TicketController extends Controller
             User::ROLE_TECHNICIAN,
         ]);
 
-        $data = $request->only(['minutes_spent', 'cost']);
-
-        $validator = Validator::make($data, [
-            'minutes_spent' => ['required', 'integer', 'min:1'],
-            'cost'          => ['required', 'numeric', 'min:0'],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
         $ticket = Ticket::find($id);
 
         if (!$ticket) {
@@ -465,11 +483,26 @@ class TicketController extends Controller
             return response()->json(['message' => 'Só é possível encerrar tickets em curso'], 422);
         }
 
+        $data = $request->only(['minutes_spent', 'cost', 'report']);
+
+        $validator = Validator::make($data, [
+            'minutes_spent' => ['required', 'integer', 'min:1'],
+            'cost'          => ['required', 'numeric', 'min:0'],
+            'report'        => ['required', 'string', 'min:5', 'max:2000'],
+        ], [
+            'report.required' => 'O relatório técnico final é obrigatório.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
         $oldStatus      = Ticket::STATUS_IN_PROGRESS;
         $closedStatusId = Ticket::getStatusIdByName(Ticket::STATUS_CLOSED);
         $ticket->status_id    = $closedStatusId;
         $ticket->minutes_spent = $data['minutes_spent'];
         $ticket->cost          = $data['cost'];
+        $ticket->technical_report = trim($data['report']);
         $ticket->closed_at     = now();
         $ticket->save();
 

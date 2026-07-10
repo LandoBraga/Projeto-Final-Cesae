@@ -109,6 +109,10 @@ export function primaryGradient(context) {
 
 }
 
+export function createGradient(context, color) {
+    return createVerticalGradient(context, color);
+}
+
 export function successGradient(context) {
 
     return createVerticalGradient(

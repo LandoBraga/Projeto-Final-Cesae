@@ -1,5 +1,5 @@
-import { getChartTheme } from '../theme';
-import { createGradient } from '../gradients';
+import { getChartTheme } from './theme';
+import { createGradient } from './gradients';
 
 
 export function createLineChart(ctx, config = {}) {

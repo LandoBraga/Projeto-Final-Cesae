@@ -72,6 +72,28 @@ class AnalyticsExportTest extends TestCase
             ->assertOk();
     }
 
+    public function test_technician_can_export_empty_reports_without_data(): void
+    {
+        $techProfile = UserProfile::where('name', User::ROLE_TECHNICIAN)->firstOrFail();
+        $technician = User::factory()->create([
+            'profile_id' => $techProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $this->withHeader('X-Auth-Token', $technician->api_token)
+            ->get('/analytics/export/csv')
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->withHeader('X-Auth-Token', $technician->api_token)
+            ->get('/analytics/export/pdf')
+            ->assertOk();
+
+        $this->withHeader('X-Auth-Token', $technician->api_token)
+            ->get('/analytics/export/excel')
+            ->assertOk();
+    }
+
     public function test_common_user_is_blocked_from_analytics_and_exports(): void
     {
         $userProfile = UserProfile::where('name', User::ROLE_USER)->firstOrFail();

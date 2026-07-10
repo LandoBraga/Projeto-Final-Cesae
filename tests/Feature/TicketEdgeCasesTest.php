@@ -154,5 +154,91 @@ class TicketEdgeCasesTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonStructure(['errors' => ['technician_id']]);
     }
+
+    public function test_closed_ticket_can_be_reopened_and_cannot_be_reopened_twice(): void
+    {
+        $closedTicket = $this->createTicketWithStatus(Ticket::STATUS_CLOSED);
+
+        $firstReopen = $this->withHeader('X-Auth-Token', $this->technician->api_token)
+            ->postJson('/tickets/' . $closedTicket->id . '/reopen');
+
+        $firstReopen->assertOk();
+        $closedTicket->refresh();
+        $this->assertTrue($closedTicket->hasStatus(Ticket::STATUS_OPEN));
+
+        $secondReopen = $this->withHeader('X-Auth-Token', $this->technician->api_token)
+            ->postJson('/tickets/' . $closedTicket->id . '/reopen');
+
+        $secondReopen->assertStatus(422);
+        $secondReopen->assertJson(['message' => 'Só é possível reabrir tickets fechados']);
+    }
+
+    public function test_common_user_can_cancel_only_open_tickets(): void
+    {
+        $ticket = $this->createTicketWithStatus(Ticket::STATUS_OPEN);
+
+        $response = $this->withHeader('X-Auth-Token', $this->user->api_token)
+            ->postJson('/tickets/' . $ticket->id . '/cancel');
+
+        $response->assertOk();
+        $ticket->refresh();
+        $this->assertTrue($ticket->hasStatus('cancelada'));
+        $this->assertNotNull($ticket->closed_at);
+    }
+
+    public function test_close_ticket_requires_final_report_before_closing(): void
+    {
+        $inProgress = $this->createTicketWithStatus(Ticket::STATUS_IN_PROGRESS);
+
+        $response = $this->withHeader('X-Auth-Token', $this->technician->api_token)
+            ->putJson('/technician/tickets/' . $inProgress->id . '/close', [
+                'minutes_spent' => 30,
+                'cost' => 25.5,
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('errors.report.0', 'O relatório técnico final é obrigatório.');
+
+        $response = $this->withHeader('X-Auth-Token', $this->technician->api_token)
+            ->putJson('/technician/tickets/' . $inProgress->id . '/close', [
+                'minutes_spent' => 30,
+                'cost' => 25.5,
+                'report' => 'Substituição de periférico concluída.',
+            ]);
+
+        $response->assertOk();
+        $inProgress->refresh();
+        $this->assertEquals('Substituição de periférico concluída.', $inProgress->technical_report);
+        $this->assertNotNull($inProgress->closed_at);
+    }
+
+    public function test_budget_request_marks_pending_status_and_admin_rejection_updates_it(): void
+    {
+        $inProgress = $this->createTicketWithStatus(Ticket::STATUS_IN_PROGRESS, [
+            'cost' => 250.0,
+            'budget_requested' => false,
+        ]);
+
+        $response = $this->withHeader('X-Auth-Token', $this->technician->api_token)
+            ->putJson('/technician/tickets/' . $inProgress->id . '/request-budget', [
+                'threshold' => 100.0,
+            ]);
+
+        $response->assertOk();
+        $inProgress->refresh();
+        $this->assertTrue($inProgress->hasStatus('pendente orçamento'));
+        $this->assertTrue($inProgress->budget_requested);
+
+        $response = $this->withHeader('X-Auth-Token', $this->admin->api_token)
+            ->patchJson('/admin/tickets/' . $inProgress->id . '/approve-budget', [
+                'decision' => 'reject',
+                'feedback' => 'Orçamento acima do limite aprovado.',
+            ]);
+
+        $response->assertOk();
+        $inProgress->refresh();
+        $this->assertTrue($inProgress->hasStatus('recusada'));
+        $this->assertEquals(Ticket::BUDGET_REJECTED, $inProgress->budget_status);
+    }
 }
 

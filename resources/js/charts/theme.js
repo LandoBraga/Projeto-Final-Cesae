@@ -128,6 +128,28 @@ export function applyChartTheme() {
 
 /*
 |--------------------------------------------------------------------------
+| Tema Computado para os Factories
+|--------------------------------------------------------------------------
+*/
+
+export function getChartTheme() {
+    return {
+        primary: "#3B82F6",
+        secondary: "#8B5CF6",
+        success: "#22C55E",
+        warning: "#F59E0B",
+        text: getTextColor(),
+        grid: getGridColor(),
+        tooltip: {
+            background: getTooltipBackground(),
+            title: getTooltipText(),
+            body: getTooltipText(),
+        }
+    };
+}
+
+/*
+|--------------------------------------------------------------------------
 | Atualizar quando muda Light/Dark
 |--------------------------------------------------------------------------
 */

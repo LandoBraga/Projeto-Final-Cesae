@@ -117,7 +117,7 @@ class AdminManagementTest extends TestCase
         $this->assertSame(Ticket::BUDGET_APPROVED, $ticket->fresh()->budget_status);
     }
 
-    public function test_common_user_and_technician_are_blocked_from_admin_equipment_and_rooms(): void
+    public function test_admin_inventory_routes_require_admin_role_and_reject_invalid_serials(): void
     {
         $adminProfile = UserProfile::where('name', User::ROLE_ADMIN)->firstOrFail();
         $userProfile = UserProfile::where('name', User::ROLE_USER)->firstOrFail();
@@ -153,5 +153,55 @@ class AdminManagementTest extends TestCase
         $this->withHeader('X-Auth-Token', $admin->api_token)
             ->getJson('/admin/rooms')
             ->assertOk();
+
+        $this->withHeader('X-Auth-Token', $admin->api_token)
+            ->postJson('/admin/equipment', [
+                'name' => 'Projector base',
+                'serial' => 'PRJ-001',
+                'room_id' => null,
+            ])
+            ->assertCreated();
+
+        $duplicateResponse = $this->withHeader('X-Auth-Token', $admin->api_token)
+            ->postJson('/admin/equipment', [
+                'name' => 'Duplicated projector',
+                'serial' => 'PRJ-001',
+                'room_id' => null,
+            ]);
+
+        $duplicateResponse->assertStatus(422);
+        $duplicateResponse->assertJsonStructure(['errors' => ['serial']]);
+    }
+
+    public function test_admin_can_schedule_preventive_maintenance(): void
+    {
+        $adminProfile = UserProfile::where('name', User::ROLE_ADMIN)->firstOrFail();
+        $technicianProfile = UserProfile::where('name', User::ROLE_TECHNICIAN)->firstOrFail();
+
+        $admin = User::factory()->create([
+            'profile_id' => $adminProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+        $technician = User::factory()->create([
+            'profile_id' => $technicianProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $response = $this->withHeader('X-Auth-Token', $admin->api_token)
+            ->postJson('/admin/preventive', [
+                'title' => 'Manutenção preventiva de ar-condicionado',
+                'description' => 'Verificar filtros e gás.',
+                'scheduled_at' => now()->addWeek()->toDateTimeString(),
+                'technician_id' => $technician->id,
+            ]);
+
+        $response->assertCreated();
+        $ticketId = $response->json('ticket.id');
+        $this->assertNotNull($ticketId);
+
+        $ticket = Ticket::findOrFail($ticketId);
+        $this->assertTrue($ticket->scheduled);
+        $this->assertEquals($technician->id, $ticket->assigned_to);
+        $this->assertNotNull($ticket->scheduled_at);
     }
 }

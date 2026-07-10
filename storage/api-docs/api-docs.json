@@ -322,7 +322,7 @@
                 ],
                 "summary": "Aprovar orçamento",
                 "description": "Aprova um pedido de orçamento associado a um ticket de avaria.",
-                "operationId": "5bb9e7d57449a03e864bf9b42b768abc",
+                "operationId": "38116d9bfe19425825216fbcd939666d",
                 "parameters": [
                     {
                         "name": "id",
@@ -351,13 +351,38 @@
                 ]
             }
         },
+        "/admin/preventive": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Criar manutenção preventiva",
+                "operationId": "42c254c0854aa9b960b70776a024b1dd",
+                "responses": {
+                    "201": {
+                        "description": "Manutenção preventiva criada"
+                    },
+                    "422": {
+                        "description": "Erro de validação"
+                    }
+                },
+                "security": [
+                    {
+                        "X-Auth-Token": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/analytics/stats": {
             "get": {
                 "tags": [
                     "Analytics"
                 ],
                 "summary": "Métricas gerais",
-                "description": "Obtém métricas gerais de tickets fechados e tempos médios.\nOtimizado para executar agregações diretamente na base de dados.",
+                "description": "Obtém o payload completo do dashboard analítico para a interface web.",
                 "operationId": "da050905766d97acc67747e316888442",
                 "responses": {
                     "200": {
@@ -380,11 +405,34 @@
                     "Analytics"
                 ],
                 "summary": "Dados para dashboards",
-                "description": "Fornece dados JSON formatados para gráficos Chart.js no dashboard.\nInclui: distribuição por prioridade, tickets por mês (últimos 6 meses),\ncusto mensal acumulado e top 5 equipamentos com mais tickets.",
+                "description": "Fornece os dados para os gráficos do dashboard analítico.",
                 "operationId": "fbb102a8736556d8c0a6a0eab04bc917",
                 "responses": {
                     "200": {
                         "description": "Séries para gráficos"
+                    }
+                },
+                "security": [
+                    {
+                        "X-Auth-Token": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/analytics/export/csv": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "summary": "Exportar CSV",
+                "description": "Exporta o relatório de todos os tickets em formato de fluxo CSV (Streaming).",
+                "operationId": "dcecb6ea9412e3415e95274597687a02",
+                "responses": {
+                    "200": {
+                        "description": "Ficheiro CSV descarregado"
                     }
                 },
                 "security": [
@@ -426,11 +474,34 @@
                     "Analytics"
                 ],
                 "summary": "Exportar Excel",
-                "description": "Exporta o relatório de tickets em formato Excel (.xlsx) usando Maatwebsite/Excel.\nInclui estilos de cabeçalho, auto-sizing das colunas e formatação de moeda.",
+                "description": "Exporta o relatório de tickets em formato Excel (.xlsx).",
                 "operationId": "73d76b642b24a8e91eeaeada37e024e9",
                 "responses": {
                     "200": {
                         "description": "Ficheiro XLSX descarregado"
+                    }
+                },
+                "security": [
+                    {
+                        "X-Auth-Token": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/admin/audits": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Listar auditoria",
+                "description": "Lista os registos de auditoria do sistema.\nProtegido globalmente via web.php com os middlewares custom.auth e role:admin.",
+                "operationId": "395c570d8f9419ab32f3da4f449e7613",
+                "responses": {
+                    "200": {
+                        "description": "Lista de auditoria"
                     }
                 },
                 "security": [

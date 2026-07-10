@@ -3,21 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Exports\TicketsExport;
+use App\Models\Audit;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
     /**
-     * Obtém métricas gerais de tickets fechados e tempos médios.
-     * Otimizado para executar agregações diretamente na base de dados.
+     * Obtém o payload completo do dashboard analítico para a interface web.
      */
     #[OA\Get(
         path: '/analytics/stats',
@@ -31,47 +32,16 @@ class AnalyticsController extends Controller
     public function stats(Request $request)
     {
         $user = $this->authenticatedUser($request);
-        // Apenas técnicos e administradores podem consultar métricas operacionais.
         $this->requireRole($user, [
             User::ROLE_TECHNICIAN,
             User::ROLE_ADMIN,
         ]);
-        
-        $openStatusId   = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
-        $closedStatusId = Ticket::getStatusIdByName(Ticket::STATUS_CLOSED);
-        
-        $closedTickets = Ticket::where('status_id', $closedStatusId)
-            ->whereNotNull('opened_at')
-            ->whereNotNull('closed_at')
-            ->get(['opened_at', 'closed_at']);
 
-        $openTickets = Ticket::where('status_id', $openStatusId)
-            ->whereNotNull('opened_at')
-            ->get(['opened_at']);
-
-        $averageResolution = $closedTickets->avg(function ($ticket) {
-            return Carbon::parse($ticket->opened_at)->diffInMinutes(Carbon::parse($ticket->closed_at));
-        });
-
-        $averageWaiting = $openTickets->avg(function ($ticket) {
-            return Carbon::parse($ticket->opened_at)->diffInMinutes(now());
-        });
-
-        $openTicketsCount   = Ticket::where('status_id', $openStatusId)->count();
-        $closedTicketsCount = Ticket::where('status_id', $closedStatusId)->count();
-
-        return response()->json([
-            'average_resolution_minutes' => round($averageResolution ?: 0, 2),
-            'average_waiting_minutes'    => round($averageWaiting ?: 0, 2),
-            'open_tickets'               => $openTicketsCount,
-            'closed_tickets'             => $closedTicketsCount,
-        ]);
+        return response()->json($this->buildPayload());
     }
 
     /**
-     * Fornece dados JSON formatados para gráficos Chart.js no dashboard.
-     * Inclui: distribuição por prioridade, tickets por mês (últimos 6 meses),
-     * custo mensal acumulado e top 5 equipamentos com mais tickets.
+     * Fornece os dados para os gráficos do dashboard analítico.
      */
     #[OA\Get(
         path: '/analytics/charts',
@@ -85,129 +55,250 @@ class AnalyticsController extends Controller
     public function charts(Request $request)
     {
         $user = $this->authenticatedUser($request);
-        // Os gráficos seguem a mesma política de acesso das métricas.
         $this->requireRole($user, [
             User::ROLE_TECHNICIAN,
             User::ROLE_ADMIN,
         ]);
 
-        // Distribuição por prioridade
-        // Agregamos por prioridade diretamente na base para evitar processamento desnecessário em PHP.
-        $byPriority = DB::table('tickets')
-            ->select('priority', DB::raw('COUNT(*) as total'))
-            ->groupBy('priority')
-            ->get()
-            ->mapWithKeys(fn($row) => [$row->priority => $row->total]);
+        return response()->json($this->buildPayload());
+    }
 
-        $openStatusId   = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
+    private function buildPayload(): array
+    {
+        $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
+        $inProgressStatusId = Ticket::getStatusIdByName(Ticket::STATUS_IN_PROGRESS);
         $closedStatusId = Ticket::getStatusIdByName(Ticket::STATUS_CLOSED);
 
-        // Limita o conjunto aos últimos seis meses para os gráficos ficarem rápidos e relevantes.
-        $recentTickets = Ticket::with('equipment')
-            ->whereNotNull('opened_at')
-            ->where('opened_at', '>=', now()->subMonths(6))
-            ->get(['opened_at', 'closed_at', 'status_id', 'cost', 'equipment_id']);
+        $tickets = Ticket::query()
+            ->with(['equipment', 'room', 'technician'])
+            ->get();
 
-        $months        = [];
-        $openByMonth   = [];
-        $closedByMonth = [];
-        $monthlyCost   = [];
+        $openTickets = $tickets->filter(fn ($ticket) => $ticket->status_id === $openStatusId);
+        $inProgressTickets = $tickets->filter(fn ($ticket) => $ticket->status_id === $inProgressStatusId);
+        $closedTickets = $tickets->filter(fn ($ticket) => $ticket->status_id === $closedStatusId && $ticket->opened_at && $ticket->closed_at);
+        $budgetPendingTickets = $tickets->filter(fn ($ticket) => $ticket->budget_status === Ticket::BUDGET_PENDING);
 
-        foreach ($recentTickets as $ticket) {
-            $month = Carbon::parse($ticket->opened_at)->format('Y-m');
-            $months[$month] = true;
-            $openByMonth[$month] = $openByMonth[$month] ?? 0;
-            $closedByMonth[$month] = $closedByMonth[$month] ?? 0;
+        $averageResolutionMinutes = $closedTickets->map(function ($ticket) {
+            return Carbon::parse($ticket->opened_at)->diffInMinutes(Carbon::parse($ticket->closed_at));
+        })->avg() ?: 0;
 
-            if ($ticket->status_id == $openStatusId) {
-                $openByMonth[$month]++;
-            }
+        $averageWaitingMinutes = $tickets->filter(fn ($ticket) => $ticket->opened_at && $ticket->status_id !== $closedStatusId)
+            ->map(function ($ticket) {
+                return Carbon::parse($ticket->opened_at)->diffInMinutes(now());
+            })->avg() ?: 0;
 
-            if ($ticket->status_id == $closedStatusId) {
-                $closedByMonth[$month]++;
-            }
+        $slaTargetMinutes = 480;
+        $slaSuccess = $closedTickets->count() > 0
+            ? round(
+                ($closedTickets->filter(function ($ticket) {
+                    $duration = Carbon::parse($ticket->opened_at)->diffInMinutes(Carbon::parse($ticket->closed_at));
+                    return $duration <= 480;
+                })->count() / $closedTickets->count()) * 100,
+                1
+            )
+            : 100;
 
-            if ($ticket->status_id == $closedStatusId && $ticket->closed_at && $ticket->cost !== null) {
-                $closedMonth = Carbon::parse($ticket->closed_at)->format('Y-m');
-                $monthlyCost[$closedMonth] = ($monthlyCost[$closedMonth] ?? 0) + (float) $ticket->cost;
-            }
-        }
+        $statusBreakdown = collect([
+            ['label' => 'Abertos', 'value' => $openTickets->count()],
+            ['label' => 'Em Curso', 'value' => $inProgressTickets->count()],
+            ['label' => 'Pendente de Orçamento', 'value' => $budgetPendingTickets->count()],
+            ['label' => 'Fechados', 'value' => $closedTickets->count()],
+        ]);
 
-        ksort($months);
-        ksort($openByMonth);
-        ksort($closedByMonth);
-        ksort($monthlyCost);
+        $priorityBreakdown = collect([
+            ['label' => 'Baixa', 'value' => $tickets->filter(fn ($ticket) => $ticket->priority === Ticket::PRIORITY_LOW)->count()],
+            ['label' => 'Média', 'value' => $tickets->filter(fn ($ticket) => $ticket->priority === Ticket::PRIORITY_MEDIUM)->count()],
+            ['label' => 'Alta', 'value' => $tickets->filter(fn ($ticket) => $ticket->priority === Ticket::PRIORITY_HIGH)->count()],
+        ]);
 
-        $topEquipments = $recentTickets
-            ->whereNotNull('equipment_id')
+        $monthlyBuckets = $this->buildMonthlySeries($tickets, $openStatusId, $inProgressStatusId, $closedStatusId);
+
+        $topEquipments = $tickets->filter(fn ($ticket) => $ticket->equipment)
             ->groupBy('equipment_id')
-            ->map(function ($tickets) {
-                return [
-                    'name' => optional($tickets->first()->equipment)->name ?? 'N/A',
-                    'total' => $tickets->count(),
-                ];
-            })
+            ->map(fn ($group) => [
+                'name' => optional($group->first()->equipment)->name ?? 'Sem equipamento',
+                'total' => $group->count(),
+                'subtitle' => 'intervenções',
+            ])
             ->sortByDesc('total')
             ->take(5)
             ->values();
 
-        return response()->json([
+        $topRooms = $tickets->filter(fn ($ticket) => $ticket->room)
+            ->groupBy('room_id')
+            ->map(fn ($group) => [
+                'name' => optional($group->first()->room)->name ?? 'Sem sala',
+                'total' => $group->count(),
+                'subtitle' => 'tickets',
+            ])
+            ->sortByDesc('total')
+            ->take(5)
+            ->values();
+
+        $topTechnicians = $tickets->filter(fn ($ticket) => $ticket->technician)
+            ->groupBy('assigned_to')
+            ->map(fn ($group) => [
+                'name' => optional($group->first()->technician)->name ?? 'Sem técnico',
+                'total' => $group->count(),
+                'subtitle' => 'ações',
+            ])
+            ->sortByDesc('total')
+            ->take(5)
+            ->values();
+
+        $recentActivity = Audit::query()
+            ->with('user')
+            ->latest()
+            ->take(6)
+            ->get()
+            ->map(function ($audit) {
+                $userName = optional($audit->user)->name ?? 'Sistema';
+                $description = match ($audit->event) {
+                    'created' => 'Registou uma nova entrada no sistema.',
+                    'updated' => 'Atualizou campos de um registo.',
+                    'deleted' => 'Removou um registo do sistema.',
+                    default => 'Ação registada na auditoria.',
+                };
+
+                return [
+                    'title' => $userName,
+                    'description' => $description,
+                    'time' => $audit->created_at?->diffForHumans() ?? 'recentemente',
+                ];
+            })
+            ->values();
+
+        return [
+            'average_resolution_minutes' => round($averageResolutionMinutes, 1),
+            'average_waiting_minutes' => round($averageWaitingMinutes, 1),
+            'open_tickets' => $openTickets->count(),
+            'in_progress_tickets' => $inProgressTickets->count(),
+            'waiting_budget_tickets' => $budgetPendingTickets->count(),
+            'closed_tickets' => $closedTickets->count(),
+            'system_availability' => 99.9,
+            'sla_success' => $slaSuccess,
             'by_priority' => [
-                'labels' => $byPriority->keys()->values(),
-                'data'   => $byPriority->values()->values(),
+                'labels' => $priorityBreakdown->pluck('label')->values(),
+                'data' => $priorityBreakdown->pluck('value')->values(),
+            ],
+            'ticket_status_breakdown' => [
+                'labels' => $statusBreakdown->pluck('label')->values(),
+                'data' => $statusBreakdown->pluck('value')->values(),
             ],
             'monthly_tickets' => [
-                'labels' => array_keys($months),
-                'open'   => array_values($openByMonth),
-                'closed' => array_values($closedByMonth),
+                'labels' => $monthlyBuckets['labels'],
+                'open' => $monthlyBuckets['open'],
+                'in_progress' => $monthlyBuckets['in_progress'],
+                'closed' => $monthlyBuckets['closed'],
             ],
             'monthly_cost' => [
-                'labels' => array_keys($monthlyCost),
-                'data'   => array_values($monthlyCost),
+                'labels' => $monthlyBuckets['cost_labels'],
+                'data' => $monthlyBuckets['cost_data'],
             ],
-            'top_equipment' => [
-                'labels' => $topEquipments->pluck('name')->values(),
-                'data'   => $topEquipments->pluck('total')->values(),
-            ],
-        ]);
+            'top_equipments' => $topEquipments,
+            'top_equipment' => $topEquipments,
+            'top_rooms' => $topRooms,
+            'top_technicians' => $topTechnicians,
+            'recent_activity' => $recentActivity,
+        ];
+    }
+
+    private function buildMonthlySeries(Collection $tickets, int $openStatusId, int $inProgressStatusId, int $closedStatusId): array
+    {
+        $months = [];
+        $open = [];
+        $inProgress = [];
+        $closed = [];
+        $costLabels = [];
+        $costData = [];
+
+        foreach (range(5, 0) as $offset) {
+            $monthKey = now()->subMonths($offset)->format('Y-m');
+            $months[] = $monthKey;
+            $open[$monthKey] = 0;
+            $inProgress[$monthKey] = 0;
+            $closed[$monthKey] = 0;
+            $costLabels[$monthKey] = 0;
+        }
+
+        foreach ($tickets as $ticket) {
+            if (!$ticket->opened_at) {
+                continue;
+            }
+
+            $monthKey = Carbon::parse($ticket->opened_at)->format('Y-m');
+            if (!array_key_exists($monthKey, $open)) {
+                continue;
+            }
+
+            if ($ticket->status_id === $openStatusId) {
+                $open[$monthKey]++;
+            }
+
+            if ($ticket->status_id === $inProgressStatusId) {
+                $inProgress[$monthKey]++;
+            }
+
+            if ($ticket->status_id === $closedStatusId) {
+                $closed[$monthKey]++;
+
+                if ($ticket->closed_at && $ticket->cost !== null) {
+                    $costLabels[$monthKey] = ($costLabels[$monthKey] ?? 0) + (float) $ticket->cost;
+                }
+            }
+        }
+
+        return [
+            'labels' => array_keys($open),
+            'open' => array_values($open),
+            'in_progress' => array_values($inProgress),
+            'closed' => array_values($closed),
+            'cost_labels' => array_keys($costLabels),
+            'cost_data' => array_values($costLabels),
+        ];
     }
 
     /**
      * Exporta o relatório de todos os tickets em formato de fluxo CSV (Streaming).
-     * Otimizado para mitigar problemas de "Memory Limit Exceeded".
      */
+    #[OA\Get(
+        path: '/analytics/export/csv',
+        tags: ['Analytics'],
+        summary: 'Exportar CSV',
+        security: [['X-Auth-Token' => []], ['BearerAuth' => []]],
+        responses: [
+            new OA\Response(response: 200, description: 'Ficheiro CSV descarregado')
+        ]
+    )]
     public function exportCsv(Request $request)
     {
         $user = $this->authenticatedUser($request);
-        // Exportar CSV é uma operação de backoffice, não para perfis básicos.
         $this->requireRole($user, [
             User::ROLE_TECHNICIAN,
             User::ROLE_ADMIN,
         ]);
-        
+
         $headers = [
-            'Content-type'        => 'text/csv',
+            'Content-type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="tickets_report.csv"',
         ];
 
         $callback = function () {
             $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['id', 'title', 'status_id', 'opened_at', 'in_progress_at', 'closed_at', 'minutes_spent', 'cost', 'budget_status', 'budget_amount']);
 
-            fputcsv($handle, ['id','title','status_id','opened_at','in_progress_at','closed_at','minutes_spent','cost','budget_status','budget_amount']);
-
-            // O método cursor() utiliza PHP Generators – mantém apenas 1 registo em memória de cada vez.
-            foreach (Ticket::cursor() as $t) {
+            foreach (Ticket::cursor() as $ticket) {
                 fputcsv($handle, [
-                    $t->id,
-                    $t->title,
-                    $t->status_id,
-                    optional($t->opened_at)->toDateTimeString(),
-                    optional($t->in_progress_at)->toDateTimeString(),
-                    optional($t->closed_at)->toDateTimeString(),
-                    $t->minutes_spent,
-                    $t->cost,
-                    $t->budget_status,
-                    $t->budget_amount,
+                    $ticket->id,
+                    $ticket->title,
+                    $ticket->status_id,
+                    optional($ticket->opened_at)->toDateTimeString(),
+                    optional($ticket->in_progress_at)->toDateTimeString(),
+                    optional($ticket->closed_at)->toDateTimeString(),
+                    $ticket->minutes_spent,
+                    $ticket->cost,
+                    $ticket->budget_status,
+                    $ticket->budget_amount,
                 ]);
             }
 
@@ -232,12 +323,11 @@ class AnalyticsController extends Controller
     public function exportPdf(Request $request)
     {
         $user = $this->authenticatedUser($request);
-        // O PDF reaproveita a mesma regra de acesso do restante módulo analítico.
         $this->requireRole($user, [
             User::ROLE_TECHNICIAN,
             User::ROLE_ADMIN,
         ]);
-        
+
         $tickets = Ticket::select([
             'id', 'title', 'status_id', 'opened_at', 'in_progress_at',
             'closed_at', 'minutes_spent', 'cost', 'budget_status', 'budget_amount'
@@ -249,8 +339,7 @@ class AnalyticsController extends Controller
     }
 
     /**
-     * Exporta o relatório de tickets em formato Excel (.xlsx) usando Maatwebsite/Excel.
-     * Inclui estilos de cabeçalho, auto-sizing das colunas e formatação de moeda.
+     * Exporta o relatório de tickets em formato Excel (.xlsx).
      */
     #[OA\Get(
         path: '/analytics/export/excel',
@@ -264,7 +353,6 @@ class AnalyticsController extends Controller
     public function exportExcel(Request $request)
     {
         $user = $this->authenticatedUser($request);
-        // A exportação Excel segue a mesma política de permissões das restantes exportações.
         $this->requireRole($user, [
             User::ROLE_TECHNICIAN,
             User::ROLE_ADMIN,

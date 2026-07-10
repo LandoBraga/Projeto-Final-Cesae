@@ -81,6 +81,7 @@ Route::middleware(['custom.auth'])->group(function () {
 
         // Rotas de Fluxo Misto/Avançado
         Route::post('/tickets/{id}/reopen',   [TicketController::class, 'reopenTicket']);
+        Route::post('/tickets/{id}/cancel',   [TicketController::class, 'cancelTicket']);
         Route::post('/tickets/{id}/schedule', [TicketController::class, 'scheduleTicket']);
 
         /*
@@ -144,6 +145,7 @@ Route::middleware(['custom.auth'])->group(function () {
             Route::delete('/admin/equipment/{id}', [AdminController::class, 'destroyEquipment']);
 
             // Decisão Orçamental de Engenharia
+            Route::post('/admin/preventive', [AdminController::class, 'storePreventive']);
             Route::patch('/admin/tickets/{id}/approve-budget', [AdminController::class, 'approveBudget']);
 
             // Gestão de Infraestrutura (Salas / Pavilhões)

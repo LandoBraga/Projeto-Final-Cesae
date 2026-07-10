@@ -34,11 +34,14 @@ class SwaggerDocumentationTest extends TestCase
             '/notifications/test-email',
             '/analytics/stats',
             '/analytics/charts',
+            '/analytics/export/csv',
             '/analytics/export/pdf',
             '/analytics/export/excel',
             '/admin/users',
             '/admin/equipment',
             '/admin/rooms',
+            '/admin/audits',
+            '/admin/preventive',
             '/tickets/search',
         ];
 
@@ -52,11 +55,14 @@ class SwaggerDocumentationTest extends TestCase
             '/notifications/test-email',
             '/analytics/stats',
             '/analytics/charts',
+            '/analytics/export/csv',
             '/analytics/export/pdf',
             '/analytics/export/excel',
             '/admin/users',
             '/admin/equipment',
             '/admin/rooms',
+            '/admin/audits',
+            '/admin/preventive',
             '/tickets/search',
         ] as $path) {
             foreach ($spec['paths'][$path] as $method => $operation) {

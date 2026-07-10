@@ -15,12 +15,12 @@ class TicketBudgetFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Criar perfis necessários para os testes
         \App\Models\UserProfile::create(['name' => User::ROLE_TECHNICIAN]);
         \App\Models\UserProfile::create(['name' => User::ROLE_ADMIN]);
         \App\Models\UserProfile::create(['name' => User::ROLE_USER]);
-        
+
         // Criar estados de ticket
         $this->artisan('db:seed', ['--class' => 'TicketLookupSeeder', '--force' => true]);
     }
@@ -36,7 +36,7 @@ class TicketBudgetFlowTest extends TestCase
         $technicianProfile = \App\Models\UserProfile::where('name', User::ROLE_TECHNICIAN)->first();
         $adminProfile = \App\Models\UserProfile::where('name', User::ROLE_ADMIN)->first();
         $userProfile = \App\Models\UserProfile::where('name', User::ROLE_USER)->first();
-        
+
         $technician = User::factory()->create([
             'profile_id' => $technicianProfile->id,
             'api_token' => Str::random(60),
@@ -79,6 +79,7 @@ class TicketBudgetFlowTest extends TestCase
             ->putJson('/technician/tickets/'.$ticket->id.'/close', [
                 'minutes_spent' => 60,
                 'cost' => 500.00,
+                'report' => 'Peças substituídas e validação concluída.',
             ]);
 
         $response->assertStatus(200);

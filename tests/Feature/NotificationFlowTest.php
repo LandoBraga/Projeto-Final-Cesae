@@ -77,4 +77,32 @@ class NotificationFlowTest extends TestCase
             ->postJson('/notifications/test-email')
             ->assertStatus(401);
     }
+
+    public function test_user_cannot_mark_another_users_notification_as_read(): void
+    {
+        $profile = UserProfile::where('name', User::ROLE_USER)->firstOrFail();
+        $owner = User::factory()->create([
+            'profile_id' => $profile->id,
+            'api_token' => Str::random(60),
+        ]);
+        $otherUser = User::factory()->create([
+            'profile_id' => $profile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $notification = Notification::create([
+            'user_id' => $owner->id,
+            'title' => 'Private update',
+            'message' => 'This belongs to the owner.',
+            'type' => 'ticket',
+            'is_read' => false,
+            'link' => '/ui/tickets/2',
+        ]);
+
+        $response = $this->withHeader('X-Auth-Token', $otherUser->api_token)
+            ->patchJson('/notifications/' . $notification->id);
+
+        $response->assertStatus(404);
+        $this->assertFalse($notification->fresh()->is_read);
+    }
 }

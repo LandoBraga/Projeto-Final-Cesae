@@ -325,6 +325,57 @@ class AdminController extends Controller
             new OA\Response(response: 422, description: 'Pedido inválido')
         ]
     )]
+    #[OA\Post(
+        path: '/admin/preventive',
+        tags: ['Admin'],
+        summary: 'Criar manutenção preventiva',
+        security: [['X-Auth-Token' => []], ['BearerAuth' => []]],
+        responses: [
+            new OA\Response(response: 201, description: 'Manutenção preventiva criada'),
+            new OA\Response(response: 422, description: 'Erro de validação')
+        ]
+    )]
+    public function storePreventive(Request $request)
+    {
+        $admin = $this->authenticatedUser($request);
+        $this->requireRole($admin, [User::ROLE_ADMIN]);
+
+        $data = $request->only(['title', 'description', 'scheduled_at', 'technician_id']);
+        $validator = Validator::make($data, [
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'scheduled_at' => ['required', 'date'],
+            'technician_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $technician = null;
+        if (!empty($data['technician_id'])) {
+            $technician = User::find($data['technician_id']);
+            if (!$technician || !$technician->isTechnician()) {
+                return response()->json(['message' => 'Técnico inválido'], 422);
+            }
+        }
+
+        $openStatusId = Ticket::getStatusIdByName(Ticket::STATUS_OPEN);
+        $ticket = Ticket::create([
+            'user_id' => $admin->id,
+            'assigned_to' => $technician?->id,
+            'title' => $data['title'],
+            'description' => $data['description'] ?? 'Manutenção preventiva agendada.',
+            'priority' => Ticket::PRIORITY_MEDIUM,
+            'status_id' => $openStatusId,
+            'opened_at' => now(),
+            'scheduled_at' => $data['scheduled_at'],
+            'scheduled' => true,
+        ]);
+
+        return response()->json(['ticket' => $ticket], 201);
+    }
+
     public function approveBudget(Request $request, int $id)
     {
         // A autorização do admin é sempre verificada a partir do token da própria API.
@@ -332,6 +383,16 @@ class AdminController extends Controller
 
         // Redundância intencional: a rota já está protegida, mas confirmamos aqui por defesa em profundidade.
         $this->requireRole($admin, [User::ROLE_ADMIN]);
+
+        $data = $request->only(['decision', 'feedback']);
+        $validator = Validator::make($data, [
+            'decision' => ['nullable', 'string', 'in:approve,reject'],
+            'feedback' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
         // Só tickets com pedido pendente podem ser aprovados.
         $ticket = Ticket::find($id);
@@ -345,7 +406,7 @@ class AdminController extends Controller
         }
 
         // A regra de negócio fica no modelo para manter a decisão consistente em toda a aplicação.
-        $approved = $ticket->approveBudget($admin);
+        $approved = $ticket->approveBudget($admin, $data['decision'] ?? 'approve', $data['feedback'] ?? null);
 
         if (!$approved) {
             return response()->json(['message' => 'Aprovação falhou'], 422);

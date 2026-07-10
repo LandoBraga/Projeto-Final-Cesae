@@ -17,6 +17,9 @@ class Ticket extends Model
     public const STATUS_OPEN = 'aberta';
     public const STATUS_IN_PROGRESS = 'em curso';
     public const STATUS_CLOSED = 'fechada';
+    public const STATUS_CANCELLED = 'cancelada';
+    public const STATUS_PENDING_BUDGET = 'pendente orçamento';
+    public const STATUS_REJECTED = 'recusada';
 
     // Prioridades de avaria
     public const PRIORITY_LOW = 'baixa';
@@ -50,6 +53,7 @@ class Ticket extends Model
         'budget_status',
         'budget_amount',
         'budget_approved_by',
+        'technical_report',
     ];
 
     protected $casts = [
@@ -148,6 +152,23 @@ class Ticket extends Model
         return false;
     }
 
+    public function reopen(): bool
+    {
+        if (!$this->hasStatus(self::STATUS_CLOSED)) {
+            return false;
+        }
+
+        $openStatus = TicketStatus::where('name', self::STATUS_OPEN)->first();
+        if ($openStatus) {
+            $this->status_id = $openStatus->id;
+        }
+
+        $this->reopened_at = now();
+        $this->closed_at = null;
+
+        return $this->save();
+    }
+
     public function requestBudgetAuthorization(float $threshold): bool
     {
         if ($this->cost === null) {
@@ -158,20 +179,49 @@ class Ticket extends Model
             $this->budget_requested = true;
             $this->budget_status = self::BUDGET_PENDING;
             $this->budget_amount = $this->cost;
+
+            $pendingStatus = TicketStatus::where('name', self::STATUS_PENDING_BUDGET)->first();
+            if ($pendingStatus) {
+                $this->status_id = $pendingStatus->id;
+            }
+
             return $this->save();
         }
 
         return false;
     }
 
-    public function approveBudget(User $admin): bool
+    public function approveBudget(User $admin, string $decision = 'approve', ?string $feedback = null): bool
     {
         if (!$admin->isAdmin()) {
             return false;
         }
 
-        $this->budget_status = self::BUDGET_APPROVED;
         $this->budget_approved_by = $admin->id;
+
+        if ($decision === 'reject') {
+            $this->budget_status = self::BUDGET_REJECTED;
+            $this->budget_requested = true;
+
+            $rejectedStatus = TicketStatus::where('name', self::STATUS_REJECTED)->first();
+            if ($rejectedStatus) {
+                $this->status_id = $rejectedStatus->id;
+            }
+
+            if (!empty($feedback)) {
+                $this->technical_report = $feedback;
+            }
+
+            return $this->save();
+        }
+
+        $this->budget_status = self::BUDGET_APPROVED;
+
+        $inProgressStatus = TicketStatus::where('name', self::STATUS_IN_PROGRESS)->first();
+        if ($inProgressStatus) {
+            $this->status_id = $inProgressStatus->id;
+        }
+
         return $this->save();
     }
 
@@ -191,7 +241,7 @@ class Ticket extends Model
         if (!$this->status_id) {
             return false;
         }
-        
+
         $statusId = self::getStatusIdByName($statusName);
         return $this->status_id === $statusId;
     }

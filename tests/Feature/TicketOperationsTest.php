@@ -108,4 +108,65 @@ class TicketOperationsTest extends TestCase
             ->getJson('/tickets/search?q=paper')
             ->assertOk();
     }
+
+    public function test_common_user_can_comment_and_upload_photo_on_their_own_ticket(): void
+    {
+        Storage::fake('public');
+
+        $userProfile = UserProfile::where('name', User::ROLE_USER)->firstOrFail();
+        $owner = User::factory()->create([
+            'profile_id' => $userProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $ticket = Ticket::create([
+            'user_id' => $owner->id,
+            'title' => 'Own ticket',
+            'description' => 'Created by owner',
+            'status_id' => Ticket::getStatusIdByName(Ticket::STATUS_OPEN),
+            'opened_at' => now(),
+        ]);
+
+        $commentResponse = $this->withHeader('X-Auth-Token', $owner->api_token)
+            ->postJson('/tickets/' . $ticket->id . '/comments', [
+                'comment' => 'I have attached the latest evidence.',
+            ]);
+
+        $commentResponse->assertCreated();
+
+        $photoResponse = $this->withHeader('X-Auth-Token', $owner->api_token)
+            ->postJson('/tickets/' . $ticket->id . '/photos', [
+                'photo' => UploadedFile::fake()->image('evidence.jpg', 320, 240),
+            ]);
+
+        $photoResponse->assertCreated();
+    }
+
+    public function test_common_user_cannot_comment_on_another_users_ticket(): void
+    {
+        $userProfile = UserProfile::where('name', User::ROLE_USER)->firstOrFail();
+        $owner = User::factory()->create([
+            'profile_id' => $userProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+        $otherUser = User::factory()->create([
+            'profile_id' => $userProfile->id,
+            'api_token' => Str::random(60),
+        ]);
+
+        $ticket = Ticket::create([
+            'user_id' => $owner->id,
+            'title' => 'Another ticket',
+            'description' => 'Owned by someone else',
+            'status_id' => Ticket::getStatusIdByName(Ticket::STATUS_OPEN),
+            'opened_at' => now(),
+        ]);
+
+        $response = $this->withHeader('X-Auth-Token', $otherUser->api_token)
+            ->postJson('/tickets/' . $ticket->id . '/comments', [
+                'comment' => 'This should be rejected.',
+            ]);
+
+        $response->assertStatus(403);
+    }
 }

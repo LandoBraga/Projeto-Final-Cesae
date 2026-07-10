@@ -52,5 +52,23 @@ class TicketLookupSeeder extends Seeder
             'description' => 'A reparação física está suspensa até que os componentes necessários cheguem.',
             'type_id' => $hardware->id
         ]);
+
+        TicketStatus::create([
+            'name' => 'cancelada',
+            'description' => 'O ticket foi cancelado pelo utilizador antes da intervenção começar.',
+            'type_id' => null
+        ]);
+
+        TicketStatus::create([
+            'name' => 'pendente orçamento',
+            'description' => 'A reparação aguardou aprovação orçamental por parte da direção.',
+            'type_id' => null
+        ]);
+
+        TicketStatus::create([
+            'name' => 'recusada',
+            'description' => 'O pedido de orçamento foi rejeitado e o processo não prosseguiu.',
+            'type_id' => null
+        ]);
     }
 }
