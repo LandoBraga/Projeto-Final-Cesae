@@ -3,27 +3,16 @@
 | Bar Chart Factory
 |--------------------------------------------------------------------------
 |
-| Criação de gráficos de barras com o tema global da aplicação.
+| Factory para criação de gráficos de barras.
 |
 */
 
-import { Chart } from "chart.js";
-
-import { destroyChart, createBaseOptions } from "./helpers";
-
-import { primaryGradient } from "./gradients";
-
-/*
-|--------------------------------------------------------------------------
-| Criar Gráfico de Barras
-|--------------------------------------------------------------------------
-*/
+import Chart from "./register";
+import { getChartTheme } from "./theme";
 
 export function createBarChart({
 
     canvas,
-
-    chart,
 
     labels = [],
 
@@ -31,43 +20,15 @@ export function createBarChart({
 
     label = "",
 
-    gradient = primaryGradient,
+    backgroundColor = null,
 
-    horizontal = false,
+    borderColor = null,
 
     options = {}
 
 }) {
 
-    chart = destroyChart(chart);
-
-    const config = createBaseOptions();
-
-    /*
-    |--------------------------------------------------------------------------
-    | Permitir gráfico horizontal
-    |--------------------------------------------------------------------------
-    */
-
-    if (horizontal) {
-
-        config.indexAxis = "y";
-
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Merge das opções adicionais
-    |--------------------------------------------------------------------------
-    */
-
-    Object.assign(config, options);
-
-    /*
-    |--------------------------------------------------------------------------
-    | Criar gráfico
-    |--------------------------------------------------------------------------
-    */
+    const theme = getChartTheme();
 
     return new Chart(canvas, {
 
@@ -85,19 +46,19 @@ export function createBarChart({
 
                     data,
 
-                    backgroundColor: gradient,
-
-                    borderRadius: 12,
+                    borderRadius: 10,
 
                     borderSkipped: false,
 
-                    borderWidth: 0,
+                    backgroundColor:
 
-                    hoverBorderWidth: 0,
+                        backgroundColor ?? theme.primary,
 
-                    barThickness: 28,
+                    borderColor:
 
-                    maxBarThickness: 36
+                        borderColor ?? theme.primary,
+
+                    borderWidth: 0
 
                 }
 
@@ -105,7 +66,83 @@ export function createBarChart({
 
         },
 
-        options: config
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            animation: {
+
+                duration: 800
+
+            },
+
+            interaction: {
+
+                intersect: false,
+
+                mode: "index"
+
+            },
+
+            plugins: {
+
+                legend: {
+
+                    display: false
+
+                },
+
+                tooltip: {
+
+                    position: "average"
+
+                }
+
+            },
+
+            scales: {
+
+                x: {
+
+                    grid: {
+
+                        display: false
+
+                    },
+
+                    ticks: {
+
+                        color: theme.text
+
+                    }
+
+                },
+
+                y: {
+
+                    beginAtZero: true,
+
+                    grid: {
+
+                        color: theme.grid
+
+                    },
+
+                    ticks: {
+
+                        color: theme.text
+
+                    }
+
+                }
+
+            },
+
+            ...options
+
+        }
 
     });
 

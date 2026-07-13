@@ -3,91 +3,43 @@
 | Doughnut Chart Factory
 |--------------------------------------------------------------------------
 |
-| Gráficos Doughnut reutilizáveis para toda a aplicação.
+| Factory para criação de gráficos Doughnut.
 |
 */
 
-import { Chart } from "chart.js";
-
-import {
-
-    destroyChart
-
-} from "./helpers";
-
-import {
-
-    doughnutPalette
-
-} from "./gradients";
-
-/*
-|--------------------------------------------------------------------------
-| Criar Doughnut
-|--------------------------------------------------------------------------
-*/
+import Chart from "./register";
+import { getChartTheme } from "./theme";
 
 export function createDoughnutChart({
 
     canvas,
 
-    chart,
-
     labels = [],
 
     data = [],
 
-    colors = doughnutPalette(),
-
-    cutout = "72%",
+    colors = [],
 
     options = {}
 
 }) {
 
-    chart = destroyChart(chart);
+    const theme = getChartTheme();
 
-    const config = {
-
-        responsive: true,
-
-        maintainAspectRatio: false,
-
-        animation: {
-
-            animateRotate: true,
-
-            animateScale: true,
-
-            duration: 900,
-
-            easing: "easeOutQuart"
-
-        },
-
-        plugins: {
-
-            legend: {
-
-                display: false
-
-            },
-
-            tooltip: {
-
-                cornerRadius: 14,
-
-                padding: 14,
-
-                displayColors: true
-
-            }
-
-        }
-
-    };
-
-    Object.assign(config, options);
+    const palette = colors.length
+        ? colors
+        : [
+            "#2563EB",
+            "#16A34A",
+            "#F59E0B",
+            "#DC2626",
+            "#7C3AED",
+            "#06B6D4",
+            "#EC4899",
+            "#84CC16",
+            "#F97316",
+            "#64748B"
+        ];
 
     return new Chart(canvas, {
 
@@ -103,15 +55,11 @@ export function createDoughnutChart({
 
                     data,
 
-                    backgroundColor: colors,
+                    backgroundColor: palette,
 
                     borderWidth: 0,
 
-                    spacing: 4,
-
-                    hoverOffset: 14,
-
-                    borderRadius: 8
+                    hoverOffset: 12
 
                 }
 
@@ -121,9 +69,54 @@ export function createDoughnutChart({
 
         options: {
 
-            cutout,
+            responsive: true,
 
-            ...config
+            maintainAspectRatio: false,
+
+            cutout: "68%",
+
+            interaction: {
+
+                intersect: false
+
+            },
+
+            plugins: {
+
+                legend: {
+
+                    display: false
+
+                },
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label(context) {
+
+                            const value = context.raw ?? 0;
+
+                            const total = context.dataset.data.reduce(
+                                (sum, current) => sum + current,
+                                0
+                            );
+
+                            const percentage = total
+                                ? ((value / total) * 100).toFixed(1)
+                                : 0;
+
+                            return `${context.label}: ${value} (${percentage}%)`;
+
+                        }
+
+                    }
+
+                }
+
+            },
+
+            ...options
 
         }
 

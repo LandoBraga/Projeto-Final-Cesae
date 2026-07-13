@@ -3,26 +3,49 @@
 | Charts Library
 |--------------------------------------------------------------------------
 |
-| Ponto de entrada da biblioteca de gráficos da aplicação.
-| Exporta todos os módulos necessários para utilização nas páginas.
+| Ponto de entrada da biblioteca de gráficos.
 |
 */
 
 /*
 |--------------------------------------------------------------------------
-| Tema
+| Theme
 |--------------------------------------------------------------------------
 */
 
-export * from "./theme";
+export {
+
+    applyChartTheme,
+
+    refreshChartTheme,
+
+    getChartTheme
+
+} from "./theme";
 
 /*
 |--------------------------------------------------------------------------
-| Paleta de Cores
+| Factories
 |--------------------------------------------------------------------------
 */
 
-export * from "./colors";
+export {
+
+    createBarChart
+
+} from "./barChart";
+
+export {
+
+    createLineChart
+
+} from "./lineChart";
+
+export {
+
+    createDoughnutChart
+
+} from "./doughnutChart";
 
 /*
 |--------------------------------------------------------------------------
@@ -30,24 +53,78 @@ export * from "./colors";
 |--------------------------------------------------------------------------
 */
 
-export * from "./helpers";
+export {
+
+    formatCurrency,
+
+    formatNumber,
+
+    formatPercent,
+
+    getGridColor,
+
+    getTextColor,
+
+    getSoftTextColor,
+
+    getBorderColor,
+
+    getSurfaceColor,
+
+    getSurfaceAltColor,
+
+    getTooltipBackground,
+
+    getTooltipText,
+
+    isDarkMode,
+
+    sum,
+
+    max,
+
+    min
+
+} from "./helpers";
 
 /*
 |--------------------------------------------------------------------------
-| Gradientes
+| Colors
 |--------------------------------------------------------------------------
 */
 
-export * from "./gradients";
+export {
+
+    COLORS,
+
+    PALETTE,
+
+    SOFT_PALETTE,
+
+    getPaletteColor,
+
+    getSoftPaletteColor,
+
+    getStatusColor
+
+} from "./colors";
 
 /*
 |--------------------------------------------------------------------------
-| Gráficos
+| Gradients
 |--------------------------------------------------------------------------
 */
 
-export * from "./barChart";
+export {
 
-export * from "./doughnutChart";
+    createVerticalGradient,
 
-export * from "./lineChart";
+    createHorizontalGradient,
+
+    createLineGradient,
+
+    createAreaGradient,
+
+    createPaletteGradients
+
+} from "./gradients";
