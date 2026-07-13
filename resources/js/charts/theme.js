@@ -3,24 +3,22 @@
 | Global Chart Theme
 |--------------------------------------------------------------------------
 |
-| Configuração global do Chart.js para toda a aplicação.
+| Configuração global para todos os gráficos da aplicação.
 |
 */
 
-import { Chart } from "chart.js";
+import Chart from "./register";
 
 import {
-
     getGridColor,
     getTextColor,
     getTooltipBackground,
     getTooltipText
-
 } from "./helpers";
 
 /*
 |--------------------------------------------------------------------------
-| Aplicar Tema Global
+| Aplicar Tema
 |--------------------------------------------------------------------------
 */
 
@@ -32,12 +30,8 @@ export function applyChartTheme() {
     |--------------------------------------------------------------------------
     */
 
-    Chart.defaults.font.family =
-
-        "'Inter', sans-serif";
-
+    Chart.defaults.font.family = "'Inter', sans-serif";
     Chart.defaults.font.size = 13;
-
     Chart.defaults.font.weight = "500";
 
     /*
@@ -47,9 +41,7 @@ export function applyChartTheme() {
     */
 
     Chart.defaults.responsive = true;
-
     Chart.defaults.maintainAspectRatio = false;
-
     Chart.defaults.layout.padding = 8;
 
     /*
@@ -59,7 +51,6 @@ export function applyChartTheme() {
     */
 
     Chart.defaults.color = getTextColor();
-
     Chart.defaults.borderColor = getGridColor();
 
     /*
@@ -69,11 +60,8 @@ export function applyChartTheme() {
     */
 
     Chart.defaults.animation = {
-
         duration: 900,
-
         easing: "easeOutQuart"
-
     };
 
     /*
@@ -82,19 +70,24 @@ export function applyChartTheme() {
     |--------------------------------------------------------------------------
     */
 
-    Chart.defaults.elements.bar.borderRadius = 12;
+    if (Chart.defaults.elements.bar) {
+        Chart.defaults.elements.bar.borderRadius = 12;
+        Chart.defaults.elements.bar.borderSkipped = false;
+    }
 
-    Chart.defaults.elements.bar.borderSkipped = false;
+    if (Chart.defaults.elements.line) {
+        Chart.defaults.elements.line.tension = 0.35;
+    }
 
-    Chart.defaults.elements.line.tension = 0.35;
+    if (Chart.defaults.elements.point) {
+        Chart.defaults.elements.point.radius = 4;
+        Chart.defaults.elements.point.hoverRadius = 7;
+    }
 
-    Chart.defaults.elements.point.radius = 4;
-
-    Chart.defaults.elements.point.hoverRadius = 7;
-
-    Chart.defaults.elements.arc.borderWidth = 0;
-
-    Chart.defaults.elements.arc.hoverOffset = 14;
+    if (Chart.defaults.elements.arc) {
+        Chart.defaults.elements.arc.borderWidth = 0;
+        Chart.defaults.elements.arc.hoverOffset = 14;
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -128,29 +121,45 @@ export function applyChartTheme() {
 
 /*
 |--------------------------------------------------------------------------
-| Tema Computado para os Factories
+| Tema utilizado pelos Factories
 |--------------------------------------------------------------------------
 */
 
 export function getChartTheme() {
+
     return {
-        primary: "#3B82F6",
-        secondary: "#8B5CF6",
-        success: "#22C55E",
-        warning: "#F59E0B",
+
+        primary: "#2563EB",
+
+        secondary: "#7C3AED",
+
+        success: "#16A34A",
+
+        warning: "#D97706",
+
+        danger: "#DC2626",
+
         text: getTextColor(),
+
         grid: getGridColor(),
+
         tooltip: {
+
             background: getTooltipBackground(),
+
             title: getTooltipText(),
-            body: getTooltipText(),
+
+            body: getTooltipText()
+
         }
+
     };
+
 }
 
 /*
 |--------------------------------------------------------------------------
-| Atualizar quando muda Light/Dark
+| Atualizar Light / Dark
 |--------------------------------------------------------------------------
 */
 
@@ -183,23 +192,17 @@ const observer = new MutationObserver(() => {
 
 });
 
-observer.observe(
+observer.observe(document.documentElement, {
 
-    document.documentElement,
+    attributes: true,
 
-    {
+    attributeFilter: ["class"]
 
-        attributes: true,
-
-        attributeFilter: ["class"]
-
-    }
-
-);
+});
 
 /*
 |--------------------------------------------------------------------------
-| Aplicar automaticamente
+| Inicialização
 |--------------------------------------------------------------------------
 */
 

@@ -362,14 +362,25 @@ class TicketController extends Controller
     public function addComment(Request $request, int $id)
     {
         $user = $this->authenticatedUser($request);
-        $this->requireRole($user, [
-            User::ROLE_TECHNICIAN,
-            User::ROLE_ADMIN,
-        ]);
 
         $ticket = Ticket::find($id);
         if (!$ticket) {
             return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        // Regra de autorização:
+        // - ROLE_TECHNICIAN / ROLE_ADMIN: podem comentar qualquer ticket.
+        // - ROLE_USER (common): só podem comentar o próprio ticket.
+        if ($user->isCommon() && (int)$ticket->user_id !== (int)$user->id) {
+            return response()->json(['message' => 'Acesso negado'], 403);
+        }
+
+        // Valida role adicional apenas para common.
+        if (!$user->isCommon()) {
+            $this->requireRole($user, [
+                User::ROLE_TECHNICIAN,
+                User::ROLE_ADMIN,
+            ]);
         }
 
         $data = $request->only(['comment']);
@@ -419,6 +430,13 @@ class TicketController extends Controller
         $ticket = Ticket::find($id);
         if (!$ticket) {
             return response()->json(['message' => 'Ticket não encontrado'], 404);
+        }
+
+        // Regra de autorização:
+        // - ROLE_USER (common): só podem fazer upload no próprio ticket.
+        // - ROLE_TECHNICIAN / ROLE_ADMIN: podem anexar em qualquer ticket.
+        if ($user->isCommon() && (int) $ticket->user_id !== (int) $user->id) {
+            return response()->json(['message' => 'Acesso negado'], 403);
         }
 
         $validator = Validator::make($request->all(), [

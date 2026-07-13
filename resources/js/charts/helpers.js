@@ -1,17 +1,29 @@
 /*
 |--------------------------------------------------------------------------
-| Chart Helpers
+| Helpers
 |--------------------------------------------------------------------------
 |
-| Funções reutilizáveis por todos os gráficos da aplicação.
+| Funções auxiliares utilizadas por toda a biblioteca Chart.js.
 |
 */
 
-import { Chart } from "chart.js";
+/*
+|--------------------------------------------------------------------------
+| CSS Variables
+|--------------------------------------------------------------------------
+*/
+
+export function getCssVariable(name) {
+
+    return getComputedStyle(document.documentElement)
+        .getPropertyValue(name)
+        .trim();
+
+}
 
 /*
 |--------------------------------------------------------------------------
-| Tema Atual
+| Theme
 |--------------------------------------------------------------------------
 */
 
@@ -23,17 +35,37 @@ export function isDarkMode() {
 
 /*
 |--------------------------------------------------------------------------
-| Cores do Tema
+| Colors
 |--------------------------------------------------------------------------
 */
 
 export function getTextColor() {
 
-    return isDarkMode()
+    return getCssVariable("--text") || "#1F2937";
 
-        ? "#E5E7EB"
+}
 
-        : "#374151";
+export function getSoftTextColor() {
+
+    return getCssVariable("--text-soft") || "#6B7280";
+
+}
+
+export function getBorderColor() {
+
+    return getCssVariable("--border") || "#E5E7EB";
+
+}
+
+export function getSurfaceColor() {
+
+    return getCssVariable("--surface") || "#FFFFFF";
+
+}
+
+export function getSurfaceAltColor() {
+
+    return getCssVariable("--surface-2") || "#F8FAFC";
 
 }
 
@@ -41,19 +73,9 @@ export function getGridColor() {
 
     return isDarkMode()
 
-        ? "rgba(255,255,255,.08)"
+        ? "rgba(255,255,255,0.08)"
 
-        : "rgba(0,0,0,.08)";
-
-}
-
-export function getBorderColor() {
-
-    return isDarkMode()
-
-        ? "#2A2A28"
-
-        : "#E5E7EB";
+        : "rgba(15,23,42,0.08)";
 
 }
 
@@ -79,126 +101,60 @@ export function getTooltipText() {
 
 /*
 |--------------------------------------------------------------------------
-| Destruir gráfico existente
+| Numbers
 |--------------------------------------------------------------------------
 */
 
-export function destroyChart(chart) {
+export function formatNumber(value) {
 
-    if (!chart) {
+    return new Intl.NumberFormat("pt-PT").format(value);
 
-        return null;
+}
 
-    }
+export function formatCurrency(value) {
 
-    chart.destroy();
+    return new Intl.NumberFormat("pt-PT", {
 
-    return null;
+        style: "currency",
+
+        currency: "EUR"
+
+    }).format(value);
+
+}
+
+export function formatPercent(value) {
+
+    return `${Number(value).toFixed(1)}%`;
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Configuração Base
+| Arrays
 |--------------------------------------------------------------------------
 */
 
-export function createBaseOptions() {
+export function sum(values = []) {
 
-    return {
+    return values.reduce(
 
-        responsive: true,
+        (total, value) => total + Number(value),
 
-        maintainAspectRatio: false,
+        0
 
-        interaction: {
+    );
 
-            intersect: false,
+}
 
-            mode: "index"
+export function max(values = []) {
 
-        },
+    return Math.max(...values);
 
-        animation: {
+}
 
-            duration: 900,
+export function min(values = []) {
 
-            easing: "easeOutQuart"
-
-        },
-
-        plugins: {
-
-            legend: {
-
-                display: false
-
-            },
-
-            tooltip: {
-
-                cornerRadius: 14,
-
-                padding: 14,
-
-                borderWidth: 1,
-
-                displayColors: true
-
-            }
-
-        },
-
-        scales: {
-
-            x: {
-
-                grid: {
-
-                    display: false
-
-                },
-
-                ticks: {
-
-                    color: getTextColor(),
-
-                    font: {
-
-                        size: 13,
-
-                        weight: 600
-
-                    }
-
-                }
-
-            },
-
-            y: {
-
-                beginAtZero: true,
-
-                grid: {
-
-                    color: getGridColor(),
-
-                    drawBorder: false
-
-                },
-
-                ticks: {
-
-                    precision: 0,
-
-                    color: getTextColor()
-
-                }
-
-            }
-
-        }
-
-    };
+    return Math.min(...values);
 
 }

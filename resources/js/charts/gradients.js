@@ -1,9 +1,9 @@
 /*
 |--------------------------------------------------------------------------
-| Chart Gradients
+| Gradient Factory
 |--------------------------------------------------------------------------
 |
-| Gradientes reutilizáveis para todos os gráficos.
+| Criação de gradientes reutilizáveis para Chart.js.
 |
 */
 
@@ -11,40 +11,35 @@ import { COLORS } from "./colors";
 
 /*
 |--------------------------------------------------------------------------
-| Criar Gradiente Vertical
+| Gradiente Vertical
 |--------------------------------------------------------------------------
 */
 
-export function createVerticalGradient(context, color) {
+export function createVerticalGradient(
 
-    const chart = context.chart;
+    ctx,
 
-    const {
-        ctx,
-        chartArea
-    } = chart;
+    color = COLORS.primary,
 
-    if (!chartArea) {
+    height = 300
 
-        return color;
-
-    }
+) {
 
     const gradient = ctx.createLinearGradient(
 
         0,
-        chartArea.bottom,
 
         0,
-        chartArea.top
+
+        0,
+
+        height
 
     );
 
-    gradient.addColorStop(0, color + "55");
-
-    gradient.addColorStop(0.45, color + "CC");
-
-    gradient.addColorStop(1, color);
+    gradient.addColorStop(0, `${color}E6`);
+    gradient.addColorStop(0.5, `${color}99`);
+    gradient.addColorStop(1, `${color}15`);
 
     return gradient;
 
@@ -52,40 +47,34 @@ export function createVerticalGradient(context, color) {
 
 /*
 |--------------------------------------------------------------------------
-| Criar Gradiente Horizontal
+| Gradiente Horizontal
 |--------------------------------------------------------------------------
 */
 
-export function createHorizontalGradient(context, color) {
+export function createHorizontalGradient(
 
-    const chart = context.chart;
+    ctx,
 
-    const {
-        ctx,
-        chartArea
-    } = chart;
+    color = COLORS.primary,
 
-    if (!chartArea) {
+    width = 400
 
-        return color;
-
-    }
+) {
 
     const gradient = ctx.createLinearGradient(
 
-        chartArea.left,
+        0,
 
         0,
 
-        chartArea.right,
+        width,
 
         0
 
     );
 
-    gradient.addColorStop(0, color);
-
-    gradient.addColorStop(1, color + "55");
+    gradient.addColorStop(0, `${color}E6`);
+    gradient.addColorStop(1, `${color}33`);
 
     return gradient;
 
@@ -93,110 +82,94 @@ export function createHorizontalGradient(context, color) {
 
 /*
 |--------------------------------------------------------------------------
-| Gradientes Oficiais
+| Gradiente Linha
 |--------------------------------------------------------------------------
 */
 
-export function primaryGradient(context) {
+export function createLineGradient(
 
-    return createVerticalGradient(
+    ctx,
 
-        context,
+    color = COLORS.primary,
 
-        COLORS.primary
+    height = 300
 
-    );
+) {
 
-}
+    const gradient = ctx.createLinearGradient(
 
-export function createGradient(context, color) {
-    return createVerticalGradient(context, color);
-}
+        0,
 
-export function successGradient(context) {
+        0,
 
-    return createVerticalGradient(
+        0,
 
-        context,
-
-        COLORS.success
+        height
 
     );
 
-}
+    gradient.addColorStop(0, `${color}66`);
+    gradient.addColorStop(1, `${color}00`);
 
-export function warningGradient(context) {
-
-    return createVerticalGradient(
-
-        context,
-
-        COLORS.warning
-
-    );
-
-}
-
-export function dangerGradient(context) {
-
-    return createVerticalGradient(
-
-        context,
-
-        COLORS.danger
-
-    );
-
-}
-
-export function infoGradient(context) {
-
-    return createVerticalGradient(
-
-        context,
-
-        COLORS.info
-
-    );
-
-}
-
-export function purpleGradient(context) {
-
-    return createVerticalGradient(
-
-        context,
-
-        COLORS.purple
-
-    );
+    return gradient;
 
 }
 
 /*
 |--------------------------------------------------------------------------
-| Paleta para Doughnut/Pie
+| Gradiente Área
 |--------------------------------------------------------------------------
 */
 
-export function doughnutPalette() {
+export function createAreaGradient(
 
-    return [
+    ctx,
 
-        COLORS.success,
+    startColor,
 
-        COLORS.primary,
+    endColor,
 
-        COLORS.warning,
+    height = 300
 
-        COLORS.danger,
+) {
 
-        COLORS.purple,
+    const gradient = ctx.createLinearGradient(
 
-        COLORS.info,
+        0,
 
-        COLORS.gray
+        0,
 
-    ];
+        0,
+
+        height
+
+    );
+
+    gradient.addColorStop(0, startColor);
+    gradient.addColorStop(1, endColor);
+
+    return gradient;
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Paleta de Gradientes
+|--------------------------------------------------------------------------
+*/
+
+export function createPaletteGradients(
+
+    ctx,
+
+    colors,
+
+    height = 300
+
+) {
+
+    return colors.map(color =>
+        createVerticalGradient(ctx, color, height)
+    );
 
 }

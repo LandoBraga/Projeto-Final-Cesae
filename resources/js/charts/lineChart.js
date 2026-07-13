@@ -1,62 +1,70 @@
-import { getChartTheme } from './theme';
-import { createGradient } from './gradients';
+/*
+|--------------------------------------------------------------------------
+| Line Chart Factory
+|--------------------------------------------------------------------------
+|
+| Factory para criação de gráficos de linhas.
+|
+*/
 
+import Chart from "./register";
+import { getChartTheme } from "./theme";
 
-export function createLineChart(ctx, config = {}) {
+export function createLineChart(canvas, config = {}) {
 
     const theme = getChartTheme();
 
     const {
+
         labels = [],
+
         datasets = [],
+
         options = {}
+
     } = config;
 
+    const chartDatasets = datasets.map(dataset => ({
 
-    const processedDatasets = datasets.map(dataset => {
+        label: dataset.label,
 
-        const color = dataset.color || theme.primary;
+        data: dataset.data,
 
+        borderColor: dataset.color ?? theme.primary,
 
-        return {
-            ...dataset,
+        backgroundColor: dataset.fill
+            ? (dataset.backgroundColor ?? `${dataset.color ?? theme.primary}20`)
+            : "transparent",
 
-            borderColor: color,
+        fill: dataset.fill ?? false,
 
-            backgroundColor: dataset.fill
-                ? createGradient(
-                    ctx,
-                    color
-                )
-                : 'transparent',
+        borderWidth: 3,
 
-            borderWidth: dataset.borderWidth || 3,
+        tension: 0.35,
 
-            pointRadius: dataset.pointRadius ?? 4,
+        pointRadius: 4,
 
-            pointHoverRadius:
-                dataset.pointHoverRadius ?? 6,
+        pointHoverRadius: 7,
 
-            tension:
-                dataset.tension ?? 0.4,
+        pointBackgroundColor: dataset.color ?? theme.primary,
 
-            fill:
-                dataset.fill ?? false
-        };
+        pointBorderWidth: 2,
 
-    });
+        pointBorderColor: "#ffffff"
 
+    }));
 
-    return new Chart(ctx, {
+    return new Chart(canvas, {
 
-        type: 'line',
+        type: "line",
 
         data: {
+
             labels,
 
-            datasets: processedDatasets
-        },
+            datasets: chartDatasets
 
+        },
 
         options: {
 
@@ -64,14 +72,13 @@ export function createLineChart(ctx, config = {}) {
 
             maintainAspectRatio: false,
 
-
             interaction: {
 
-                mode: 'index',
+                intersect: false,
 
-                intersect: false
+                mode: "index"
+
             },
-
 
             plugins: {
 
@@ -79,29 +86,21 @@ export function createLineChart(ctx, config = {}) {
 
                     display: true,
 
+                    position: "bottom",
+
                     labels: {
 
+                        usePointStyle: true,
+
+                        padding: 20,
+
                         color: theme.text
+
                     }
-                },
 
-
-                tooltip: {
-
-                    enabled: true,
-
-                    backgroundColor:
-                        theme.tooltip.background,
-
-                    titleColor:
-                        theme.tooltip.title,
-
-                    bodyColor:
-                        theme.tooltip.body
                 }
 
             },
-
 
             scales: {
 
@@ -109,49 +108,37 @@ export function createLineChart(ctx, config = {}) {
 
                     grid: {
 
-                        color:
-                            theme.grid
+                        display: false
+
                     },
 
                     ticks: {
 
-                        color:
-                            theme.text
+                        color: theme.text
+
                     }
 
                 },
-
 
                 y: {
 
                     beginAtZero: true,
 
-
                     grid: {
 
-                        color:
-                            theme.grid
-                    },
+                        color: theme.grid
 
+                    },
 
                     ticks: {
 
-                        color:
-                            theme.text
+                        color: theme.text
+
                     }
 
                 }
 
             },
-
-
-            animation: {
-
-                duration: 800,
-
-                easing: 'easeOutQuart'
-            },
-
 
             ...options
 

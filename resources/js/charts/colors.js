@@ -1,71 +1,124 @@
 /*
 |--------------------------------------------------------------------------
-| Dashboard Color Palette
+| Chart Color Palettes
 |--------------------------------------------------------------------------
 |
-| Paleta oficial da aplicação.
-| Todas as páginas deverão utilizar estas cores.
+| Paletas de cores utilizadas pelos gráficos.
 |
+*/
+
+/*
+|--------------------------------------------------------------------------
+| Cores Principais
+|--------------------------------------------------------------------------
 */
 
 export const COLORS = {
 
-    primary: "#3B82F6",
+    primary: "#2563EB",
 
-    success: "#22C55E",
+    secondary: "#7C3AED",
 
-    warning: "#F59E0B",
+    success: "#16A34A",
 
-    danger: "#EF4444",
+    warning: "#D97706",
 
-    info: "#06B6D4",
+    danger: "#DC2626",
 
-    purple: "#8B5CF6",
+    info: "#0891B2",
 
-    pink: "#EC4899",
-
-    gray: "#94A3B8",
-
-    slate: "#64748B",
-
-    surface: "#F8FAFC"
+    neutral: "#64748B"
 
 };
 
 /*
 |--------------------------------------------------------------------------
-| Estado dos Tickets
+| Paleta para Doughnut / Pie
 |--------------------------------------------------------------------------
 */
 
-export const STATUS = {
+export const PALETTE = [
 
-    OPEN: COLORS.primary,
+    "#2563EB",
+    "#16A34A",
+    "#D97706",
+    "#DC2626",
+    "#7C3AED",
+    "#0891B2",
+    "#EC4899",
+    "#84CC16",
+    "#F97316",
+    "#64748B"
 
-    IN_PROGRESS: COLORS.warning,
-
-    WAITING: COLORS.purple,
-
-    CLOSED: COLORS.success,
-
-    CANCELLED: COLORS.danger
-
-};
+];
 
 /*
 |--------------------------------------------------------------------------
-| Equipamentos
+| Paleta Suave
 |--------------------------------------------------------------------------
 */
 
-export const EQUIPMENT = {
+export const SOFT_PALETTE = [
 
-    OPERATIONAL: COLORS.success,
+    "rgba(37,99,235,.18)",
+    "rgba(22,163,74,.18)",
+    "rgba(217,119,6,.18)",
+    "rgba(220,38,38,.18)",
+    "rgba(124,58,237,.18)",
+    "rgba(8,145,178,.18)",
+    "rgba(236,72,153,.18)",
+    "rgba(132,204,22,.18)",
+    "rgba(249,115,22,.18)",
+    "rgba(100,116,139,.18)"
 
-    MAINTENANCE: COLORS.info,
+];
 
-    BROKEN: COLORS.warning,
+/*
+|--------------------------------------------------------------------------
+| Obter Cor por Índice
+|--------------------------------------------------------------------------
+*/
 
-    INACTIVE: COLORS.danger
+export function getPaletteColor(index) {
 
-};
+    return PALETTE[index % PALETTE.length];
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Obter Cor Suave
+|--------------------------------------------------------------------------
+*/
+
+export function getSoftPaletteColor(index) {
+
+    return SOFT_PALETTE[index % SOFT_PALETTE.length];
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| Cor por Estado
+|--------------------------------------------------------------------------
+*/
+
+export function getStatusColor(status) {
+
+    const map = {
+
+        open: COLORS.warning,
+
+        pending: COLORS.info,
+
+        progress: COLORS.primary,
+
+        closed: COLORS.success,
+
+        cancelled: COLORS.danger
+
+    };
+
+    return map[status] ?? COLORS.neutral;
+
+}
